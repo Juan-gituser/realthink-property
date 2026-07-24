@@ -4,7 +4,7 @@ import PropertyCard, { PropertyProps } from "@/components/shared/PropertyCard";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-// Dummy Data untuk tahap inisialisasi tampilan
+// Dummy Data untuk tahap inisialisasi / preview mandiri
 const dummyFeatured: PropertyProps[] = [
   {
     id: "1",
@@ -50,27 +50,43 @@ const dummyFeatured: PropertyProps[] = [
   },
 ];
 
-export default function FeaturedProperties() {
+interface FeaturedPropertiesProps {
+  properties?: PropertyProps[];
+}
+
+export default function FeaturedProperties({ properties }: FeaturedPropertiesProps) {
+  // Gunakan data dari props jika ada, jika tidak gunakan dummyFeatured
+  const displayProperties = properties && properties.length > 0 ? properties : dummyFeatured;
+
   return (
     <section className="container mx-auto px-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-primary">Properti Unggulan</h2>
-          <p className="text-muted-foreground mt-2">Pilihan properti eksklusif dengan nilai investasi terbaik</p>
+          <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider">
+            Pilihan Utama
+          </span>
+          <h2 className="text-2xl md:text-3xl font-heading font-bold text-gray-900 mt-2">
+            Properti Unggulan
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">Pilihan properti eksklusif dengan nilai investasi terbaik</p>
         </div>
         <Link
-          href="/listing"
-          className="text-secondary font-semibold hover:underline flex items-center gap-1 text-sm"
+          href="/properti"
+          className="text-amber-600 font-semibold hover:underline flex items-center gap-1 text-sm"
         >
           Lihat Semua Unggulan <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {dummyFeatured.map((property) => (
-          <PropertyCard key={property.id} property={property} />
-        ))}
-      </div>
+      {displayProperties.length === 0 ? (
+        <p className="text-sm text-gray-500">Belum ada properti unggulan saat ini.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {displayProperties.map((property) => (
+            <PropertyCard key={property.id} property={property} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

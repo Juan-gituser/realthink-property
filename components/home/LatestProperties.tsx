@@ -1,64 +1,82 @@
-import Link from "next/link";
-import PropertyCard from "@/components/shared/PropertyCard";
+"use client";
 
-// Data Dummy Properti Terbaru (ditambahkan 'as const' pada status)
-const LATEST_PROPERTIES = [
-  {
-    id: "1",
-    title: "Rumah Minimalis Modern Premium",
-    slug: "rumah-minimalis-modern-premium",
-    price: "Rp 1.250.000.000",
-    location: "Cilandak, Jakarta Selatan",
-    city: "Jakarta Selatan",
-    district: "Cilandak",
-    bedrooms: 3,
-    bathrooms: 2,
-    landArea: 120,
-    buildingArea: 90,
-    imageUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
-    status: "dijual" as const,
-    category: "Rumah",
-    isFeatured: false,
-  },
-  {
-    id: "2",
-    title: "Apartemen View Kota Modern",
-    slug: "apartemen-view-kota-modern",
-    price: "Rp 850.000.000",
-    location: "Coblong, Bandung",
-    city: "Bandung",
-    district: "Coblong",
-    bedrooms: 2,
-    bathrooms: 1,
-    landArea: 45,
-    buildingArea: 45,
-    imageUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
-    status: "disewa" as const,
-    category: "Apartemen",
-    isFeatured: false,
-  },
-  {
-    id: "3",
-    title: "Ruko 3 Lantai Strategis BSD",
-    slug: "ruko-3-lantai-strategis-bsd",
-    price: "Rp 3.500.000.000",
-    location: "Serpong, Tangerang Selatan",
-    city: "Tangerang Selatan",
-    district: "Serpong",
-    bedrooms: 1,
-    bathrooms: 3,
-    landArea: 150,
-    buildingArea: 300,
-    imageUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
-    status: "dijual" as const,
-    category: "Ruko",
-    isFeatured: false,
-  },
-];
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase } from "@/lib/supabase";
+import PropertyCard from "@/components/shared/PropertyCard";
+import { Loader2, Building2 } from "lucide-react";
+
+interface Property {
+  id: string;
+  title: string;
+  slug: string;
+  price: string;
+  location: string;
+  city?: string;
+  district?: string;
+  bedrooms: number;
+  bathrooms: number;
+  landArea: number;
+  buildingArea: number;
+  imageUrl: string;
+  status: "dijual" | "disewa";
+  category: string;
+  isFeatured?: boolean;
+}
 
 export default function LatestProperties() {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProperties() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("properties")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(6);
+
+        if (error) {
+          console.error("Gagal mengambil data properti:", error.message);
+          return;
+        }
+
+        if (data) {
+          // Mapping data snake_case Supabase ke camelCase komponen
+          const mappedProperties: Property[] = data.map((item: any) => ({
+            id: String(item.id),
+            title: item.title,
+            slug: item.slug,
+            price: item.price,
+            location: item.location,
+            city: item.city,
+            district: item.district,
+            bedrooms: item.bedrooms || 0,
+            bathrooms: item.bathrooms || 0,
+            landArea: item.land_area || 0,
+            buildingArea: item.building_area || 0,
+            imageUrl: item.image_url || "/placeholder-property.jpg",
+            status: item.status === "disewa" ? "disewa" : "dijual",
+            category: item.category || "Properti",
+            isFeatured: item.is_featured || false,
+          }));
+
+          setProperties(mappedProperties);
+        }
+      } catch (err) {
+        console.error("Terjadi kesalahan:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProperties();
+  }, []);
+
   return (
-    <section className="container mx-auto px-4 py-8">
+    <section className="container mx-auto px-4 py-12">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
@@ -66,7 +84,7 @@ export default function LatestProperties() {
             Listing Terbaru
           </span>
           <h2 className="text-2xl md:text-3xl font-heading font-bold text-primary mt-1">
-            Properti Teranyar dari Realthink
+            Properti Terbaik dari Realthink
           </h2>
         </div>
         <Link
@@ -77,12 +95,33 @@ export default function LatestProperties() {
         </Link>
       </div>
 
-      {/* Grid Properti */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {LATEST_PROPERTIES.map((property) => (
-          <PropertyCard key={property.id} property={property} />
-        ))}
-      </div>
+      {/* State Loading */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400 space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-secondary" />
+          <p className="text-sm">Memuat data properti terbaru...</p>
+        </div>
+      )}
+
+      {/* State Kosong (Belum ada data di database) */}
+      {!loading && properties.length === 0 && (
+        <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+          <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-gray-700">Belum Ada Properti</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Tambahkan listing pertama Anda melalui halaman Admin.
+          </p>
+        </div>
+      )}
+
+      {/* Grid Properti Live */}
+      {!loading && properties.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {properties.map((property) => (
+            <PropertyCard key={property.id} property={property} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

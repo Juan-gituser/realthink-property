@@ -30,7 +30,7 @@ export default function WhyChooseUs() {
     <section className="bg-primary/5 py-16">
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl font-bold text-primary">Mengapa Belijon Property?</h2>
+          <h2 className="text-3xl font-bold text-primary">Mengapa Realthink Property?</h2>
           <p className="text-muted-foreground mt-2">
             Kami berkomitmen memberikan standar pelayanan terbaik dalam bertransaksi properti.
           </p>

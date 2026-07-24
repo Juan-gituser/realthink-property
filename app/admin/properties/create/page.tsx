@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation"; //  BENAR (untuk App Router)
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Upload, Loader2, Building, CheckCircle2 } from "lucide-react";

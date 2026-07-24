@@ -1,5 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -17,9 +17,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({
             request,
           });
@@ -31,26 +29,42 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refresh session jika kedaluwarsa
+  const { data: { user } } = await supabase.auth.getUser();
+  const pathname = request.nextUrl.pathname;
 
-  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
-  const isLoginRoute = request.nextUrl.pathname === "/admin/login";
-
-  // Redirect jika belum login tapi mencoba akses admin
-  if (isAdminRoute && !isLoginRoute && !user) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+  // Ambil role user dari tabel profiles
+  let userRole = 'guest';
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    if (profile) {
+      userRole = profile.role;
+    }
   }
 
-  // Redirect jika sudah login tapi mengakses halaman login lagi
-  if (isLoginRoute && user) {
-    return NextResponse.redirect(new URL("/admin", request.url));
+  // Aturan Proteksi Dashboard Berdasarkan Role
+  if (pathname.startsWith('/dashboard/smart-buyer') && !['smart_buyer', 'investor_pro', 'super_admin'].includes(userRole)) {
+    return NextResponse.redirect(new URL('/upgrade?plan=smart_buyer', request.url));
+  }
+
+  if (pathname.startsWith('/dashboard/investor-pro') && !['investor_pro', 'super_admin'].includes(userRole)) {
+    return NextResponse.redirect(new URL('/upgrade?plan=investor_pro', request.url));
+  }
+
+  if (pathname.startsWith('/admin') && !['admin', 'super_admin'].includes(userRole)) {
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

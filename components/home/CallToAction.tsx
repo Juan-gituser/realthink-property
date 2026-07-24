@@ -8,7 +8,7 @@ export default function CallToAction() {
         <div className="space-y-3 max-w-2xl">
           <h2 className="text-3xl font-bold text-white">Ingin Menjual atau Menyewakan Properti Anda?</h2>
           <p className="text-gray-300">
-            Titipkan listing properti Anda pada Belijon Property. Dapatkan paparan calon pembeli potensial lebih cepat.
+            Titipkan listing properti Anda pada Realthink Property. Dapatkan paparan calon pembeli potensial lebih cepat.
           </p>
         </div>
         <Link

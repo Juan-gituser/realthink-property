@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import PropertyCard from "@/components/shared/PropertyCard";
-import { Search, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { use, useState } from "react";
+import Image from "next/image";
+import PropertyMap from "@/components/PropertyMap";
+import SurveyModal from "@/components/SurveyModal";
+import { MapPin, Calendar, MessageSquare, Phone, Mail, Heart, Bed, Bath, Maximize } from "lucide-react";
 
-// Data Dummy Properti
+// Data Dummy Properti (Sama seperti di katalog)
 const ALL_PROPERTIES = [
   {
     id: "1",
@@ -23,6 +25,11 @@ const ALL_PROPERTIES = [
     status: "dijual" as const,
     category: "Rumah",
     isFeatured: true,
+    lat: -6.2995,
+    lng: 106.6518,
+    whatsapp: "6281234567890",
+    phone: "+6221555888",
+    email: "info@properti.com",
   },
   {
     id: "2",
@@ -41,6 +48,11 @@ const ALL_PROPERTIES = [
     status: "disewa" as const,
     category: "Apartemen",
     isFeatured: false,
+    lat: -6.8900,
+    lng: 107.6100,
+    whatsapp: "6281234567890",
+    phone: "+6221555888",
+    email: "info@properti.com",
   },
   {
     id: "3",
@@ -59,6 +71,11 @@ const ALL_PROPERTIES = [
     status: "dijual" as const,
     category: "Ruko",
     isFeatured: true,
+    lat: -6.3000,
+    lng: 106.6600,
+    whatsapp: "6281234567890",
+    phone: "+6221555888",
+    email: "info@properti.com",
   },
   {
     id: "4",
@@ -77,6 +94,11 @@ const ALL_PROPERTIES = [
     status: "dijual" as const,
     category: "Villa",
     isFeatured: true,
+    lat: -8.5069,
+    lng: 115.2625,
+    whatsapp: "6281234567890",
+    phone: "+6221555888",
+    email: "info@properti.com",
   },
   {
     id: "5",
@@ -95,6 +117,11 @@ const ALL_PROPERTIES = [
     status: "dijual" as const,
     category: "Rumah",
     isFeatured: false,
+    lat: -6.3100,
+    lng: 106.6700,
+    whatsapp: "6281234567890",
+    phone: "+6221555888",
+    email: "info@properti.com",
   },
   {
     id: "6",
@@ -113,166 +140,205 @@ const ALL_PROPERTIES = [
     status: "disewa" as const,
     category: "Apartemen",
     isFeatured: false,
+    lat: -6.2100,
+    lng: 106.8200,
+    whatsapp: "6281234567890",
+    phone: "+6221555888",
+    email: "info@properti.com",
   },
 ];
 
-export default function PropertiesPage() {
-  // State Filter
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Semua");
-  const [selectedStatus, setSelectedStatus] = useState("Semua");
-  const [maxPrice, setMaxPrice] = useState<number | "">("");
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
 
-  // Handler Reset Filter
-  const handleReset = () => {
-    setSearchQuery("");
-    setSelectedCategory("Semua");
-    setSelectedStatus("Semua");
-    setMaxPrice("");
+export default function DetailPropertiPage({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const { slug } = resolvedParams;
+
+  // Cari data properti berdasarkan slug URL
+  const properti = ALL_PROPERTIES.find((item) => item.slug === slug) || ALL_PROPERTIES[0];
+
+  const [isSurveyOpen, setIsSurveyOpen] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Helper function untuk Google Analytics Event Tracking (gtag)
+  const trackGAEvent = (action: string, params?: Record<string, unknown>) => {
+    if (typeof window !== "undefined" && (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag) {
+      (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", action, params);
+    }
   };
 
-  // Logika Filter
-  const filteredProperties = useMemo(() => {
-    return ALL_PROPERTIES.filter((item) => {
-      // Filter kata kunci (Judul & Lokasi)
-      const matchesSearch =
-        item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.location.toLowerCase().includes(searchQuery.toLowerCase());
+  const handleWhatsAppClick = () => {
+    trackGAEvent("click_whatsapp", { property_id: properti.id, property_title: properti.title });
+    window.open(`https://wa.me/${properti.whatsapp}?text=Halo, saya tertarik dengan properti ${properti.title}`, "_blank");
+  };
 
-      // Filter Kategori
-      const matchesCategory =
-        selectedCategory === "Semua" || item.category === selectedCategory;
+  const handlePhoneClick = () => {
+    trackGAEvent("click_phone", { property_id: properti.id, property_title: properti.title });
+    window.location.href = `tel:${properti.phone}`;
+  };
 
-      // Filter Status (Dijual / Disewa)
-      const matchesStatus =
-        selectedStatus === "Semua" || item.status === selectedStatus.toLowerCase();
+  const handleEmailClick = () => {
+    trackGAEvent("click_email", { property_id: properti.id, property_title: properti.title });
+    window.location.href = `mailto:${properti.email}?subject=Tertarik dengan ${properti.title}`;
+  };
 
-      // Filter Maksimal Harga
-      const matchesPrice =
-        maxPrice === "" || item.rawPrice <= Number(maxPrice);
-
-      return matchesSearch && matchesCategory && matchesStatus && matchesPrice;
+  const handleFavoriteClick = () => {
+    const newStatus = !isFavorite;
+    setIsFavorite(newStatus);
+    trackGAEvent("favorite_property", { 
+      property_id: properti.id, 
+      property_title: properti.title,
+      status: newStatus ? "added" : "removed" 
     });
-  }, [searchQuery, selectedCategory, selectedStatus, maxPrice]);
+  };
+
+  const handleSurveyClick = () => {
+    trackGAEvent("click_schedule_survey", { property_id: properti.id, property_title: properti.title });
+    setIsSurveyOpen(true);
+  };
+
+  const handleConsultationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    trackGAEvent("submit_consultation", { property_id: properti.id, property_title: properti.title });
+    alert("Konsultasi berhasil dikirim!");
+  };
+
+  const handleSurveySubmitSuccess = () => {
+    trackGAEvent("submit_survey", { property_id: properti.id, property_title: properti.title });
+    setIsSurveyOpen(false);
+  };
 
   return (
-    <div className="bg-gray-50/50 min-h-screen py-10">
-      <div className="container mx-auto px-4 space-y-8">
+    <div className="min-h-screen bg-gray-50 pt-24 pb-16">
+      <div className="container mx-auto px-4 max-w-4xl space-y-8">
         
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-heading font-bold text-primary">
-            Katalog Properti
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Temukan hunian, apartemen, ruko, dan investasi properti terbaik sesuai kriteria Anda.
-          </p>
+        {/* Banner Gambar Utama */}
+        <div className="relative h-80 w-full rounded-2xl overflow-hidden shadow-sm bg-gray-100">
+          <Image
+            src={properti.imageUrl}
+            alt={properti.title}
+            fill
+            className="object-cover"
+            priority
+          />
         </div>
 
-        {/* Panel Filter */}
-        <div className="bg-white p-6 rounded-xl border border-border shadow-sm space-y-4">
-          <div className="flex items-center gap-2 border-b border-border pb-3 text-primary font-semibold">
-            <SlidersHorizontal className="w-5 h-5 text-secondary" />
-            <span>Filter Pencarian</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Input Search */}
-            <div className="relative">
-              <label className="text-xs font-semibold text-gray-600 mb-1 block">Kata Kunci / Lokasi</label>
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Cari BSD, Jakarta, Minimalis..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-secondary outline-none"
-                />
-              </div>
+        {/* Informasi Utama Properti & Tombol Aksi */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+          <div className="flex justify-between items-start gap-4">
+            <div className="space-y-2">
+              <span className="text-sm font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                {properti.price}
+              </span>
+              <h1 className="text-2xl font-heading font-bold text-gray-900 mt-2">
+                {properti.title}
+              </h1>
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-amber-600" /> {properti.location}
+              </p>
             </div>
-
-            {/* Select Kategori */}
-            <div>
-              <label className="text-xs font-semibold text-gray-600 mb-1 block">Kategori</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full py-2 px-3 border rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-secondary"
-              >
-                <option value="Semua">Semua Kategori</option>
-                <option value="Rumah">Rumah</option>
-                <option value="Apartemen">Apartemen</option>
-                <option value="Ruko">Ruko</option>
-                <option value="Villa">Villa</option>
-                <option value="Tanah">Tanah</option>
-              </select>
-            </div>
-
-            {/* Select Status */}
-            <div>
-              <label className="text-xs font-semibold text-gray-600 mb-1 block">Status Listing</label>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full py-2 px-3 border rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-secondary"
-              >
-                <option value="Semua">Dijual & Disewa</option>
-                <option value="Dijual">Dijual</option>
-                <option value="Disewa">Disewa</option>
-              </select>
-            </div>
-
-            {/* Max Price */}
-            <div>
-              <label className="text-xs font-semibold text-gray-600 mb-1 block">Harga Maksimal (Rp)</label>
-              <input
-                type="number"
-                placeholder="Contoh: 2000000000"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value ? Number(e.target.value) : "")}
-                className="w-full py-2 px-3 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-secondary"
-              />
-            </div>
-          </div>
-
-          {/* Action Row */}
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <span className="text-xs text-muted-foreground">
-              Menampilkan <strong className="text-primary">{filteredProperties.length}</strong> properti
-            </span>
+            
             <button
-              onClick={handleReset}
-              className="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1.5 transition"
+              onClick={handleFavoriteClick}
+              className={`p-3 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+                isFavorite 
+                  ? "bg-red-50 border-red-200 text-red-600" 
+                  : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+              }`}
+              title="Favorite Property"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset Filter
+              <Heart className={`w-5 h-5 ${isFavorite ? "fill-red-600" : ""}`} />
+            </button>
+          </div>
+
+          {/* Spesifikasi Properti */}
+          <div className="grid grid-cols-3 gap-4 py-3 border-t border-b border-gray-100 text-xs text-gray-700 font-semibold">
+            <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl">
+              <Bed className="w-4 h-4 text-amber-600" />
+              <span>{properti.bedrooms} Kamar Tidur</span>
+            </div>
+            <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl">
+              <Bath className="w-4 h-4 text-amber-600" />
+              <span>{properti.bathrooms} Kamar Mandi</span>
+            </div>
+            <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl">
+              <Maximize className="w-4 h-4 text-amber-600" />
+              <span>{properti.buildingArea} m² Luas Bangunan</span>
+            </div>
+          </div>
+
+          {/* Grid Tombol Interaksi & Tracking */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+            <button
+              onClick={handleSurveyClick}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer"
+            >
+              <Calendar className="w-4 h-4" /> Jadwalkan Survei
+            </button>
+            <button
+              onClick={handleWhatsAppClick}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer"
+            >
+              <MessageSquare className="w-4 h-4" /> WhatsApp
+            </button>
+            <button
+              onClick={handlePhoneClick}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer"
+            >
+              <Phone className="w-4 h-4" /> Telepon
+            </button>
+            <button
+              onClick={handleEmailClick}
+              className="bg-gray-800 hover:bg-gray-900 text-white font-bold px-4 py-3 rounded-xl transition shadow-sm flex items-center justify-center gap-2 text-xs cursor-pointer"
+            >
+              <Mail className="w-4 h-4" /> Email
             </button>
           </div>
         </div>
 
-        {/* Output Grid Properti */}
-        {filteredProperties.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProperties.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-white rounded-xl border border-border">
-            <p className="text-lg font-semibold text-gray-700">Properti Tidak Ditemukan</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Coba sesuaikan kata kunci atau atur ulang filter pencarian Anda.
-            </p>
-            <button
-              onClick={handleReset}
-              className="mt-4 bg-primary text-white text-xs px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition"
+        {/* Form Konsultasi Properti */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+          <h2 className="text-lg font-bold text-gray-900">Form Konsultasi Properti</h2>
+          <form onSubmit={handleConsultationSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Pertanyaan / Pesan Konsultasi</label>
+              <textarea 
+                rows={3} 
+                required 
+                placeholder="Tuliskan pertanyaan Anda mengenai properti ini..."
+                className="w-full text-sm p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-gray-900"
+              ></textarea>
+            </div>
+            <button 
+              type="submit"
+              className="bg-slate-900 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition hover:bg-slate-800 cursor-pointer"
             >
-              Reset Filter
+              Submit Konsultasi
             </button>
-          </div>
-        )}
+          </form>
+        </div>
+
+        {/* Peta Interaktif Lokasi Properti */}
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+          <PropertyMap 
+            lat={properti.lat} 
+            lng={properti.lng} 
+            address={properti.location} 
+            title={properti.title} 
+          />
+        </div>
 
       </div>
+
+      <SurveyModal
+        isOpen={isSurveyOpen}
+        onClose={() => setIsSurveyOpen(false)}
+        propertyId={properti.id}
+        propertyTitle={properti.title}
+        onSubmitSuccess={handleSurveySubmitSuccess}
+      />
     </div>
   );
 }

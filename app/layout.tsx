@@ -3,6 +3,9 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import ComparisonBar from "@/components/shared/ComparisonBar";
+import FloatingConsultation from "@/components/FloatingConsultation";
+import PageWrapper from "@/components/PageWrapper";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -26,12 +29,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={`${inter.variable} ${poppins.variable}`}>
-      <body className="min-h-screen flex flex-col bg-background">
+    <html lang="id" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col bg-background antialiased" suppressHydrationWarning>
+        {/* Navbar */}
         <Navbar />
-        <main className="flex-grow pt-20">
+        
+        {/* PageWrapper untuk mengatur padding dinamis secara otomatis */}
+        <PageWrapper>
           {children}
-        </main>
+        </PageWrapper>
+        
+        {/* Bar Komparasi Properti */}
+        <ComparisonBar />
+        
+        {/* Tombol Floating Konsultasi */}
+        <FloatingConsultation />
+        
+        {/* Footer */}
         <Footer />
       </body>
     </html>
