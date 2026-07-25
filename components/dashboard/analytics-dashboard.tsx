@@ -21,7 +21,7 @@ export function AnalyticsDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400 space-y-3">
+      <div className="flex flex-col items-center justify-center min-h-100[400px] text-slate-400 space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
         <p className="text-xs">Memuat Dashboard Analytics...</p>
       </div>

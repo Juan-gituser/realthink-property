@@ -60,7 +60,7 @@ export function AnalyticsChartView({ data }: AnalyticsChartViewProps) {
       </div>
 
       {/* Recharts Container */}
-      <div className="h-[380px] w-full pt-4">
+      <div className="h-95[380px] w-full pt-4">
         <ResponsiveContainer width="100%" height="100%">
           {activeMetric === "revenue" ? (
             <BarChart data={data}>

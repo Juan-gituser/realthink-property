@@ -17,7 +17,7 @@ export default async function InvestorOverviewPage() {
     : 88;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-linear-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/20 p-8 rounded-3xl shadow-2xl gap-4">
         <div>
