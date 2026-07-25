@@ -32,7 +32,8 @@ export default function RegisterPage() {
 
     try {
       // 1. Daftarkan user baru ke Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // (Database Trigger di Supabase akan otomatis membuat baris profil di tabel 'profiles')
+      const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -46,23 +47,6 @@ export default function RegisterPage() {
         alert("Registrasi gagal: " + authError.message);
         setIsLoading(false);
         return;
-      }
-
-      if (authData.user) {
-        // 2. Masukkan / perbarui profil ke tabel 'profiles' dengan role default "member"
-        // (Catatan: Jika Anda menggunakan Database Trigger di Supabase untuk otomatis membuat row profiles, langkah ini bisa dilewati atau di-upsert)
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: authData.user.id,
-            full_name: fullName,
-            role: "member", // Role default untuk pendaftar baru
-            updated_at: new Date(),
-          });
-
-        if (profileError) {
-          console.error("Gagal membuat profil:", profileError.message);
-        }
       }
 
       alert("Registrasi berhasil! Silakan masuk ke akun Anda.");
