@@ -22,44 +22,32 @@ import {
   X,
   UserCheck,
   Info,
-  Sparkles,
-  Home
+  Home,
+  BarChart3,
+  Tag
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-// Fungsi helper untuk menentukan menu berdasarkan role pengguna
+// Fungsi helper untuk menentukan menu berdasarkan role pengguna (disesuaikan dengan folder /dashboard/admin)
 const getNavConfig = (role: string) => {
   switch (role) {
     case "admin":
       return {
         dashboardName: "Overview Admin",
-        dashboardPath: "/admin",
+        dashboardPath: "/dashboard/admin",
         navItems: [
-          { name: "Kelola Pengguna", path: "/admin/users", icon: Users },
-          { name: "Manajemen Properti", path: "/admin/properties", icon: Building2 },
-          { name: "Pengaturan Sistem", path: "/admin/settings", icon: Settings },
+          { name: "Analitik", path: "/dashboard/admin/analytics", icon: BarChart3 },
+          { name: "Kelola Pengguna", path: "/dashboard/admin/users", icon: Users },
+          { name: "Manajemen Properti", path: "/dashboard/admin/properties", icon: Building2 },
+          { name: "Pricing", path: "/dashboard/admin/pricing", icon: Tag },
+          { name: "Pengaturan Sistem", path: "/dashboard/admin/settings", icon: Settings },
         ]
       };
     case "smart_buyer":
+    default:
       return {
         dashboardName: "Smart Buyer Center",
         dashboardPath: "/dashboard/smart-buyer",
-        navItems: [
-          { name: "Favorit", path: "/dashboard/member/favorite", icon: Heart },
-          { name: "Survey", path: "/dashboard/member/survey", icon: Calendar },
-          { name: "Kalkulator", path: "/dashboard/member/calculator", icon: Calculator },
-          { name: "Konsultasi", path: "/dashboard/member/consultation", icon: MessageSquare },
-          { name: "Riwayat", path: "/dashboard/member/history", icon: Clock },
-          { name: "Catatan", path: "/dashboard/member/notes", icon: FileText },
-          { name: "Notifikasi", path: "/dashboard/member/notification", icon: Bell },
-          { name: "Profil", path: "/dashboard/member/profile", icon: User },
-          { name: "Keamanan", path: "/dashboard/member/security", icon: Shield },
-        ]
-      };
-    default: // Member Reguler / Default
-      return {
-        dashboardName: "Dashboard Utama",
-        dashboardPath: "/dashboard",
         navItems: [
           { name: "Favorit", path: "/dashboard/member/favorite", icon: Heart },
           { name: "Survey", path: "/dashboard/member/survey", icon: Calendar },
@@ -157,10 +145,20 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string>("smart_buyer");
   const supabase = createClient();
 
-  // Role simulasi (bisa diganti dengan data user session asli dari database/Supabase)
-  const userRole: string = "smart_buyer"; 
+  useEffect(() => {
+    async function fetchUserRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Mengambil role dari metadata user atau set default
+        const role = user.user_metadata?.role || "smart_buyer";
+        setUserRole(role);
+      }
+    }
+    fetchUserRole();
+  }, [supabase]);
 
   const { dashboardName, dashboardPath, navItems } = getNavConfig(userRole);
   const isDashboardActive = pathname === dashboardPath;
