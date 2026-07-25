@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,8 +15,12 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -23,10 +29,14 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // PENTING: Jangan letakkan logika apa pun di antara createServerClient dan supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const pathname = request.nextUrl.pathname;
 
-  // Jika mencoba mengakses dashboard tanpa login
+  // 1. Jika mencoba mengakses dashboard tanpa login
   if (!user && pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -34,8 +44,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // 2. Jika user login dan mengakses dashboard, lakukan cek otorisasi role & permission
   if (user && pathname.startsWith("/dashboard")) {
-    // Ambil role pengguna dari database secara dinamis
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -44,14 +54,16 @@ export async function middleware(request: NextRequest) {
 
     const role = profile?.role || "member";
 
-    // Super Admin bebas akses
+    // Super Admin bebas akses ke semua rute dashboard
     if (role !== "super_admin") {
       // Ambil aturan proteksi rute langsung dari tabel database (Tanpa Hardcode)
       const { data: routeRules } = await supabase
         .from("route_permissions")
         .select("path_prefix, required_role");
 
-      const matchedRule = routeRules?.find(rule => pathname.startsWith(rule.path_prefix));
+      const matchedRule = routeRules?.find((rule) =>
+        pathname.startsWith(rule.path_prefix)
+      );
 
       if (matchedRule) {
         let isAllowed = false;
@@ -68,6 +80,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Mengembalikan response lengkap dengan cookie session Supabase yang sudah diperbarui
   return supabaseResponse;
 }
 

@@ -26,6 +26,7 @@ export function RoleGuard({ minRole, children, fallback }: RoleGuardProps) {
   const userRole = profile?.role || "guest";
   const hasAccess = roleHierarchy[userRole] >= roleHierarchy[minRole];
 
+  // Jika level role user di bawah ketentuan minimum, tampilkan fallback atau pesan blokir
   if (!hasAccess) {
     return fallback || (
       <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl text-center space-y-2 backdrop-blur-xl">
