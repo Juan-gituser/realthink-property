@@ -40,7 +40,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="h-screen bg-gray-50 flex overflow-hidden font-sans antialiased">
       
       {/* Overlay Gelap untuk Tampilan Mobile */}
       {sidebarOpen && (
@@ -61,7 +61,7 @@ export default function AdminLayout({
           {/* Header Brand */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800 shrink-0">
             <Link href="/admin" className="flex items-center gap-3">
-              <div className="p-2 bg-amber-500 text-slate-950 rounded-lg font-bold">
+              <div className="p-2 bg-amber-500 text-slate-950 rounded-lg font-bold shadow-md shadow-amber-500/20">
                 <Building2 className="w-4 h-4" />
               </div>
               <div>
@@ -76,7 +76,7 @@ export default function AdminLayout({
             
             {/* Tombol Close Sidebar (Mobile) */}
             <button 
-              className="lg:hidden text-slate-400 hover:text-white"
+              className="lg:hidden text-slate-400 hover:text-white transition-colors cursor-pointer"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="w-5 h-5" />
@@ -94,39 +94,43 @@ export default function AdminLayout({
                   key={item.href}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? "bg-amber-500 text-slate-950 font-semibold shadow-sm"
+                      ? "bg-amber-500 text-slate-950 font-semibold shadow-sm shadow-amber-500/20"
                       : "text-slate-400 hover:bg-slate-800 hover:text-white"
                   }`}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-slate-950" : "text-slate-400"}`} />
                   <span>{item.name}</span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Bagian Bawah Sidebar: Website Link & Logout */}
+          {/* Bagian Bawah Sidebar: Website Link & Logout dengan Interaksi Halus */}
           <div className="p-4 border-t border-slate-800 space-y-2 shrink-0">
+            {/* Tombol Lihat Website */}
             <Link
               href="/"
               target="_blank"
-              className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition"
+              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-400 bg-slate-800/40 border border-slate-800 hover:bg-slate-800 hover:text-white transition-all duration-200 group cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                <ExternalLink className="w-4 h-4" /> Lihat Website
+                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-amber-400 transition-colors" /> 
+                <span>Lihat Website</span>
               </span>
-              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">
+              <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono group-hover:bg-amber-500/20 group-hover:text-amber-300 transition-colors">
                 Live
               </span>
             </Link>
 
+            {/* Tombol Logout dengan Animasi Hover & Kursor Pointer */}
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition text-left"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/5 border border-rose-500/20 hover:bg-rose-500/15 hover:border-rose-500/40 hover:text-rose-300 transition-all duration-200 text-left cursor-pointer shadow-sm hover:scale-[1.01] group"
             >
-              <LogOut className="w-4 h-4" /> Keluar (Logout)
+              <LogOut className="w-4 h-4 shrink-0 transition-transform duration-200 group-hover:-translate-x-0.5" /> 
+              <span>Keluar (Logout)</span>
             </button>
           </div>
         </div>
@@ -141,7 +145,7 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             {/* Tombol Hamburger (Mobile) */}
             <button
-              className="lg:hidden text-gray-600 hover:text-gray-900"
+              className="lg:hidden text-gray-600 hover:text-gray-950 transition-colors cursor-pointer"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="w-6 h-6" />
@@ -163,7 +167,7 @@ export default function AdminLayout({
             {/* Tombol Pintas Tambah Properti */}
             <Link
               href="/admin/properties/create"
-              className="bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm px-3.5 py-2 rounded-xl font-medium flex items-center gap-2 transition shadow-sm"
+              className="bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm px-3.5 py-2 rounded-xl font-medium flex items-center gap-2 transition-all shadow-sm hover:scale-[1.02]"
             >
               <PlusCircle className="w-4 h-4 text-amber-400" />
               <span className="hidden sm:inline">Tambah Properti</span>
@@ -178,7 +182,7 @@ export default function AdminLayout({
                 <p className="text-xs font-bold text-gray-900">Admin Realthink</p>
                 <p className="text-[10px] text-gray-500">Super Administrator</p>
               </div>
-              <div className="w-8 h-8 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-xs border border-slate-700">
+              <div className="w-8 h-8 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-xs border border-slate-700 shadow-inner">
                 A
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client"; // Sesuaikan path utils/lib Supabase Anda
 import { 
   Building2, 
   Mail, 
@@ -19,14 +20,71 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const supabase = createClient();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulasi proses login
-    setTimeout(() => {
+
+    try {
+      // 1. Authenticate login ke Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        alert("Login gagal: " + authError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!authData.user) {
+        alert("Login gagal: User tidak ditemukan.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Ambil role user dari tabel profiles
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", authData.user.id)
+        .maybeSingle();
+
+      const role = profile?.role || "member";
+
+      // 3. Tentukan rute dashboard berdasarkan role
+      let targetPath = "/dashboard/member"; // Default langsung ke dashboard member
+
+      if (role === "admin" || role === "super_admin") {
+        targetPath = "/dashboard/admin";
+      } else if (role === "smart_buyer") {
+        targetPath = "/dashboard/smart-buyer/ai-advisor";
+      } else if (role === "investor_pro") {
+        targetPath = "/dashboard/investor";
+      }
+
+      // 4. Redirect ke dashboard tujuan
+      window.location.href = targetPath;
+    } catch (err) {
+      console.error("Terjadi kesalahan:", err);
+      alert("Terjadi kesalahan sistem saat mencoba masuk.");
       setIsLoading(false);
-      alert(`Login berhasil dengan email: ${email}`);
-    }, 1500);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      alert("Gagal login dengan Google: " + error.message);
+    }
   };
 
   return (
@@ -110,7 +168,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Form Utama (Email, Password, & Tombol Masuk Sekarang di Atas) */}
+          {/* Form Utama */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Input Email */}
             <div className="space-y-1.5">
@@ -199,10 +257,10 @@ export default function LoginPage() {
             <div className="grow border-t border-border"></div>
           </div>
 
-          {/* Google SSO Button (Di Bawah) */}
+          {/* Google SSO Button */}
           <button
             type="button"
-            onClick={() => alert("Fitur Login Google")}
+            onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-border rounded-xl text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 transition active:scale-[0.99] shadow-sm cursor-pointer"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

@@ -1,9 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, Building2, ChevronDown, Calculator, FileText, Landmark, TrendingUp, Sparkles, Star, LogIn } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { 
+  Menu, 
+  X, 
+  Building2, 
+  ChevronDown, 
+  Calculator, 
+  FileText, 
+  Landmark, 
+  TrendingUp, 
+  Sparkles, 
+  Star, 
+  LogIn, 
+  User,
+  Shield
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
@@ -11,6 +26,64 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [premiumDropdownOpen, setPremiumDropdownOpen] = useState(false);
+  
+  // State untuk menyimpan data user login & status admin
+  const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const supabase = createClient();
+
+  // Pengecekan status login & role di Client Component
+  useEffect(() => {
+    const checkUserAndRole = async (currentUser: any) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        setIsAdmin(false);
+        return;
+      }
+
+      // 1. Cek role dari user_metadata terlebih dahulu
+      const metadataRole = currentUser.user_metadata?.role;
+      if (metadataRole === "admin" || metadataRole === "super_admin") {
+        setIsAdmin(true);
+        return;
+      }
+
+      // 2. Jika tidak ada di metadata, cek dari tabel profiles di database
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (profile?.role === "admin" || profile?.role === "super_admin") {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (error) {
+        console.error("Gagal memuat profil role:", error);
+        setIsAdmin(false);
+      }
+    };
+
+    const getInitialUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      await checkUserAndRole(user);
+    };
+
+    getInitialUser();
+
+    // Listener real-time saat status auth berubah (login/logout)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      await checkUserAndRole(session?.user ?? null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   // Jika sedang di halaman auth atau halaman admin, Navbar tidak dirender
   const isAuthPage = pathname === "/login" || pathname === "/daftar";
@@ -31,7 +104,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Nav - Ukuran font diperkecil menjadi text-[13px] */}
+        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6 font-medium text-[13px]">
           <Link href="/" className="text-foreground hover:text-secondary transition-colors">
             Beranda
@@ -188,15 +261,35 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        {/* Tombol Masuk Desktop (Aesthetic Style) */}
+        {/* Tombol Auth / Panel Admin Desktop (Dinamis) */}
         <div className="hidden md:flex items-center">
-          <Link
-            href="/login"
-            className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wide text-primary bg-primary/5 border border-primary/15 hover:bg-primary hover:text-white hover:border-transparent transition-all duration-300 shadow-sm hover:shadow-md group cursor-pointer"
-          >
-            <LogIn className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
-            <span>Masuk</span>
-          </Link>
+          {user ? (
+            isAdmin ? (
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wide text-white bg-slate-900 hover:bg-slate-800 transition-all duration-300 shadow-sm hover:shadow-md border border-amber-500/40 cursor-pointer"
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <span>Panel Admin</span>
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard/member"
+                className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wide text-white bg-primary hover:bg-primary/90 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Dashboard Member</span>
+              </Link>
+            )
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wide text-primary bg-primary/5 border border-primary/15 hover:bg-primary hover:text-white hover:border-transparent transition-all duration-300 shadow-sm hover:shadow-md group cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              <span>Masuk</span>
+            </Link>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -310,14 +403,34 @@ export default function Navbar() {
                 Tentang Kami
               </Link>
 
-              {/* Tombol Masuk Mobile (Aesthetic Style) */}
-              <Link
-                href="/login"
-                className="flex items-center justify-center gap-2 bg-primary/5 border border-primary/15 text-primary text-center px-6 py-3 mt-3 rounded-xl font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
-                onClick={() => setIsOpen(false)}
-              >
-                <LogIn className="w-4 h-4" /> Masuk
-              </Link>
+              {/* Tombol Auth / Panel Admin Mobile (Dinamis) */}
+              {user ? (
+                isAdmin ? (
+                  <Link
+                    href="/admin"
+                    className="flex items-center justify-center gap-2 bg-slate-900 text-white text-center px-6 py-3 mt-3 rounded-xl font-medium hover:bg-slate-800 transition-all duration-300 shadow-sm border border-amber-500/40"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <Shield className="w-4 h-4 text-amber-400" /> Panel Admin
+                  </Link>
+                ) : (
+                  <Link
+                    href="/dashboard/member"
+                    className="flex items-center justify-center gap-2 bg-primary text-white text-center px-6 py-3 mt-3 rounded-xl font-medium hover:bg-primary/90 transition-all duration-300 shadow-sm"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <User className="w-4 h-4" /> Dashboard Member
+                  </Link>
+                )
+              ) : (
+                <Link
+                  href="/login"
+                  className="flex items-center justify-center gap-2 bg-primary/5 border border-primary/15 text-primary text-center px-6 py-3 mt-3 rounded-xl font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <LogIn className="w-4 h-4" /> Masuk
+                </Link>
+              )}
             </div>
           </motion.div>
         )}

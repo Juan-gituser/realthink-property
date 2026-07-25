@@ -1,75 +1,84 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { 
   Plus, Search, Edit, Trash2, Eye, 
-  Building2, CheckCircle2, Clock, Ban, SlidersHorizontal 
+  Building2, CheckCircle2, Clock, Ban, Star, Loader2 
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
-// Data Dummy List Properti Admin
-const INITIAL_PROPERTIES = [
-  {
-    id: "1",
-    title: "Rumah Minimalis Modern Premium BSD",
-    slug: "rumah-minimalis-modern-premium",
-    price: "Rp 1.250.000.000",
-    category: "Rumah",
-    status: "dijual" as const,
-    listingStatus: "published" as const, // published | draft | sold
-    city: "Tangerang Selatan",
-    isFeatured: true,
-    updatedAt: "22 Jul 2026",
-    imageUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "2",
-    title: "Apartemen View Kota Modern",
-    slug: "apartemen-view-kota-modern",
-    price: "Rp 850.000.000",
-    category: "Apartemen",
-    status: "disewa" as const,
-    listingStatus: "published" as const,
-    city: "Bandung",
-    isFeatured: false,
-    updatedAt: "20 Jul 2026",
-    imageUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "3",
-    title: "Ruko 3 Lantai Strategis BSD",
-    slug: "ruko-3-lantai-strategis-bsd",
-    price: "Rp 3.500.000.000",
-    category: "Ruko",
-    status: "dijual" as const,
-    listingStatus: "draft" as const,
-    city: "Tangerang Selatan",
-    isFeatured: false,
-    updatedAt: "18 Jul 2026",
-    imageUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "4",
-    title: "Villa Tropis Asri dengan Kolam Renang",
-    slug: "villa-tropis-asri-kolam-renang",
-    price: "Rp 4.200.000.000",
-    category: "Villa",
-    status: "dijual" as const,
-    listingStatus: "sold" as const,
-    city: "Gianyar",
-    isFeatured: true,
-    updatedAt: "10 Jul 2026",
-    imageUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=300&q=80",
-  },
-];
+interface Property {
+  id: string;
+  title: string;
+  slug: string;
+  price: string;
+  category: string;
+  status: "dijual" | "disewa";
+  listingStatus: "published" | "draft" | "sold";
+  city: string;
+  isFeatured: boolean;
+  updatedAt: string;
+  imageUrl: string;
+}
 
 export default function AdminPropertiesPage() {
-  const [properties, setProperties] = useState(INITIAL_PROPERTIES);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedListingStatus, setSelectedListingStatus] = useState("Semua");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const supabase = createClient();
+
+  // Fungsi Mengambil Data dari Supabase
+  const fetchProperties = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("properties")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Gagal memuat data properti:", error.message);
+        return;
+      }
+
+      if (data) {
+        // Mapping kolom database (snake_case) ke state frontend (camelCase jika diperlukan)
+        const formattedData: Property[] = data.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          slug: item.slug,
+          price: item.price,
+          category: item.category,
+          status: item.status || "dijual",
+          listingStatus: item.listing_status || "published",
+          city: item.city,
+          isFeatured: item.is_featured || false,
+          updatedAt: new Date(item.updated_at || item.created_at).toLocaleDateString("id-ID", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+          imageUrl: item.image_url || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=300&q=80",
+        }));
+
+        setProperties(formattedData);
+      }
+    } catch (err) {
+      console.error("Terjadi kesalahan:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
 
   // Filter Data
   const filteredProperties = useMemo(() => {
@@ -88,10 +97,40 @@ export default function AdminPropertiesPage() {
     });
   }, [properties, searchQuery, selectedListingStatus, selectedCategory]);
 
-  // Handler Hapus Properti
-  const handleDelete = (id: string) => {
-    setProperties((prev) => prev.filter((p) => p.id !== id));
-    setDeleteId(null);
+  // Handler Hapus Properti dari Supabase
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("properties")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        alert("Gagal menghapus properti: " + error.message);
+        return;
+      }
+
+      setProperties((prev) => prev.filter((p) => p.id !== id));
+      setDeleteId(null);
+    } catch (err) {
+      console.error("Error deleting property:", err);
+    }
+  };
+
+  // Handler Toggle Status Unggulan (Featured) di Supabase
+  const handleToggleFeatured = async (propertyId: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from("properties")
+      .update({ is_featured: !currentStatus })
+      .eq("id", propertyId);
+
+    if (!error) {
+      setProperties((prev) =>
+        prev.map((p) => (p.id === propertyId ? { ...p, isFeatured: !currentStatus } : p))
+      );
+    } else {
+      alert("Gagal memperbarui status unggulan: " + error.message);
+    }
   };
 
   // Ringkasan Statistik
@@ -114,7 +153,7 @@ export default function AdminPropertiesPage() {
             Kelola Properti
           </h1>
           <p className="text-sm text-gray-500">
-            Daftar seluruh listing properti yang terdaftar di platform Realthink.
+            Daftar seluruh listing properti yang terdaftar di database Realthink.
           </p>
         </div>
         <Link
@@ -231,7 +270,16 @@ export default function AdminPropertiesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">
-              {filteredProperties.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="p-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <p className="text-sm">Memuat data properti...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredProperties.length > 0 ? (
                 filteredProperties.map((property) => (
                   <tr key={property.id} className="hover:bg-gray-50/80 transition">
                     
@@ -246,16 +294,25 @@ export default function AdminPropertiesPage() {
                             className="object-cover"
                           />
                         </div>
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                           <p className="font-semibold text-gray-900 line-clamp-1">
                             {property.title}
                           </p>
                           <p className="text-xs text-gray-500">{property.city}</p>
-                          {property.isFeatured && (
-                            <span className="inline-block bg-amber-100 text-amber-800 text-[10px] font-medium px-2 py-0.5 rounded">
-                              ★ Featured
-                            </span>
-                          )}
+                          
+                          {/* Toggle Featured Button Interaktif */}
+                          <button
+                            onClick={() => handleToggleFeatured(property.id, property.isFeatured)}
+                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded transition ${
+                              property.isFeatured 
+                                ? "bg-amber-100 text-amber-800 hover:bg-amber-200" 
+                                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                            }`}
+                            title="Klik untuk mengubah status unggulan"
+                          >
+                            <Star className={`w-3 h-3 ${property.isFeatured ? "fill-amber-600 text-amber-600" : ""}`} />
+                            {property.isFeatured ? "Featured" : "Jadikan Featured"}
+                          </button>
                         </div>
                       </div>
                     </td>
@@ -342,7 +399,7 @@ export default function AdminPropertiesPage() {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
-                    Tidak ada properti yang sesuai dengan filter pencarian.
+                    Tidak ada properti yang sesuai dengan filter pencarian atau database masih kosong.
                   </td>
                 </tr>
               )}
@@ -357,7 +414,7 @@ export default function AdminPropertiesPage() {
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900">Hapus Listing Properti?</h3>
             <p className="text-sm text-gray-500">
-              Tindakan ini tidak dapat dibatalkan. Properti akan dihapus permanen dari sistem.
+              Tindakan ini tidak dapat dibatalkan. Properti akan dihapus permanen dari database.
             </p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button

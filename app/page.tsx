@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import HeroSection from "@/components/home/HeroSection";
 import PropertyCategories from "@/components/home/PropertyCategories";
 import FeaturedProperties from "@/components/home/FeaturedProperties";
@@ -31,13 +31,21 @@ export const metadata: Metadata = {
   },
 };
 
-// Fungsi Fetch Properti Unggulan dari Supabase dengan Casting Type Status
+// Fungsi Fetch Properti Unggulan dari Supabase dengan createClient terbaru
 async function getFeaturedProperties() {
-  const { data } = await supabase
+  const supabase = createClient();
+  
+  const { data, error } = await supabase
     .from("properties")
     .select("*")
     .eq("is_featured", true)
-    .limit(3);
+    .order("created_at", { ascending: false })
+    .limit(6); // Batasi jumlah properti unggulan yang tampil
+
+  if (error) {
+    console.error("Gagal memuat properti unggulan:", error);
+    return [];
+  }
 
   if (!data) return [];
 

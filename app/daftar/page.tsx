@@ -31,8 +31,8 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // 1. Daftarkan user baru ke Supabase Auth
-      // (Database Trigger di Supabase akan otomatis membuat baris profil di tabel 'profiles')
+      // Daftarkan user baru ke Supabase Auth
+      // Database Trigger di Supabase akan otomatis membuat profil di tabel 'profiles'
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,

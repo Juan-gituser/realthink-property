@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import ComparisonBar from "@/components/shared/ComparisonBar";
+import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 import FloatingConsultation from "@/components/FloatingConsultation";
-import PageWrapper from "@/components/PageWrapper";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -31,22 +28,12 @@ export default function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <body className="min-h-screen flex flex-col bg-background antialiased" suppressHydrationWarning>
-        {/* Navbar */}
-        <Navbar />
-        
-        {/* PageWrapper untuk mengatur padding dinamis secara otomatis */}
-        <PageWrapper>
+        <MainLayoutWrapper>
           {children}
-        </PageWrapper>
-        
-        {/* Bar Komparasi Properti */}
-        <ComparisonBar />
-        
-        {/* Tombol Floating Konsultasi */}
+        </MainLayoutWrapper>
+
+        {/* Tombol Floating Konsultasi (Otomatis hilang jika di /admin) */}
         <FloatingConsultation />
-        
-        {/* Footer */}
-        <Footer />
       </body>
     </html>
   );

@@ -13,21 +13,38 @@ export default async function SecurityPage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="bg-[#1C2541] border border-slate-800 p-6 rounded-3xl flex items-center gap-4">
-        <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20"><Shield className="w-6 h-6" /></div>
+      {/* Banner Utama */}
+      <div className="bg-primary border border-border p-6 rounded-3xl flex items-center gap-4 text-white shadow-sm">
+        <div className="p-3 bg-secondary/15 text-secondary rounded-xl border border-secondary/30">
+          <Shield className="w-6 h-6" />
+        </div>
         <div>
-          <h1 className="text-xl font-bold text-white">Keamanan & Password</h1>
-          <p className="text-xs text-slate-300">Ubah kata sandi akun Anda secara berkala demi keamanan.</p>
+          <h1 className="text-lg sm:text-xl font-bold font-heading text-white">Keamanan & Password</h1>
+          <p className="text-xs text-slate-300 mt-0.5">Ubah kata sandi akun Anda secara berkala demi keamanan.</p>
         </div>
       </div>
 
-      <form action={updatePassword} className="bg-[#1C2541]/60 border border-slate-800 p-6 rounded-3xl space-y-4">
-        <div>
-          <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Password Baru</label>
-          <input type="password" name="new_password" required className="w-full bg-[#0B132B] border border-slate-800 px-4 py-2.5 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500" placeholder="••••••••" />
+      {/* Form Keamanan */}
+      <form action={updatePassword} className="bg-card border border-border p-6 sm:p-8 rounded-3xl space-y-6 shadow-xs">
+        <div className="space-y-2">
+          <label className="text-[11px] uppercase font-bold text-foreground/80 tracking-wider block">
+            Password Baru
+          </label>
+          <input 
+            type="password" 
+            name="new_password" 
+            required 
+            className="w-full bg-background border border-border px-4 py-3 rounded-xl text-xs text-foreground focus:outline-none focus:border-secondary transition shadow-sm" 
+            placeholder="••••••••" 
+          />
         </div>
-        <button type="submit" className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5">
-          <KeyRound className="w-4 h-4" /> Perbarui Password
+
+        <button 
+          type="submit" 
+          className="inline-flex items-center gap-2 px-5 py-3 bg-secondary text-primary font-bold text-xs rounded-xl hover:opacity-90 transition shadow-sm cursor-pointer"
+        >
+          <KeyRound className="w-4 h-4" /> 
+          <span>Perbarui Password</span>
         </button>
       </form>
     </div>

@@ -63,7 +63,7 @@ export default function AboutPage() {
             </p>
           </div>
           <Link
-            href="https://wa.me/6281234567890"
+            href="https://wa.me/6283872415878"
             target="_blank"
             className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-3 rounded-xl transition flex items-center gap-2 text-sm shrink-0"
           >

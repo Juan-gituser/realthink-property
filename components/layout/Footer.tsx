@@ -131,15 +131,15 @@ export default function Footer() {
             <ul className="space-y-2.5 text-xs text-gray-300">
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                <span>BSD City, Tangerang Selatan</span>
+                <span>DKI Jakarta, Jakarta Timur </span>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-secondary shrink-0" />
-                <span>+62 21 555 888</span>
+                <span>+62 838-7241-5878</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-secondary shrink-0" />
-                <span>info@properti.com</span>
+                <span>realthinkproperty@gmail.com</span>
               </li>
             </ul>
           </div>

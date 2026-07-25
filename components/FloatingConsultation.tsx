@@ -9,6 +9,7 @@ export default function FloatingConsultation() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Sembunyikan tombol jika berada di halaman login, daftar, atau admin
   const isAuthPage = pathname === "/login" || pathname === "/daftar";
   const isAdminPage = pathname?.startsWith("/admin");
 
@@ -54,7 +55,7 @@ export default function FloatingConsultation() {
               </div>
 
               <a
-                href="https://wa.me/6281234567890" 
+                href="https://wa.me/6283872415878" 
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition shadow-sm cursor-pointer text-xs"
