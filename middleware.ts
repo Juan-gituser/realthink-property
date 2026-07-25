@@ -1,12 +1,8 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,53 +14,65 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({
-            request,
-          });
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options)
           );
         },
       },
     }
   );
 
-  // Refresh session jika kedaluwarsa
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  // Ambil role user dari tabel profiles
-  let userRole = 'guest';
-  if (user) {
+  // Jika mencoba mengakses dashboard tanpa login
+  if (!user && pathname.startsWith("/dashboard")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (user && pathname.startsWith("/dashboard")) {
+    // Ambil role pengguna dari database secara dinamis
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
-    
-    if (profile) {
-      userRole = profile.role;
+
+    const role = profile?.role || "member";
+
+    // Super Admin bebas akses
+    if (role !== "super_admin") {
+      // Ambil aturan proteksi rute langsung dari tabel database (Tanpa Hardcode)
+      const { data: routeRules } = await supabase
+        .from("route_permissions")
+        .select("path_prefix, required_role");
+
+      const matchedRule = routeRules?.find(rule => pathname.startsWith(rule.path_prefix));
+
+      if (matchedRule) {
+        let isAllowed = false;
+        if (matchedRule.required_role === role) isAllowed = true;
+        if (role === "admin") isAllowed = true; // Admin memiliki akses istimewa
+
+        if (!isAllowed) {
+          const upgradeUrl = request.nextUrl.clone();
+          upgradeUrl.pathname = "/upgrade";
+          upgradeUrl.searchParams.set("plan", matchedRule.required_role);
+          return NextResponse.redirect(upgradeUrl);
+        }
+      }
     }
   }
 
-  // Aturan Proteksi Dashboard Berdasarkan Role
-  if (pathname.startsWith('/dashboard/smart-buyer') && !['smart_buyer', 'investor_pro', 'super_admin'].includes(userRole)) {
-    return NextResponse.redirect(new URL('/upgrade?plan=smart_buyer', request.url));
-  }
-
-  if (pathname.startsWith('/dashboard/investor-pro') && !['investor_pro', 'super_admin'].includes(userRole)) {
-    return NextResponse.redirect(new URL('/upgrade?plan=investor_pro', request.url));
-  }
-
-  if (pathname.startsWith('/admin') && !['admin', 'super_admin'].includes(userRole)) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  return response;
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

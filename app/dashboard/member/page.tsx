@@ -1,78 +1,47 @@
 import { createClient } from "@/lib/supabase/server";
-import { Heart, Calendar, Calculator, Sparkles } from "lucide-react";
+import { Heart, Calendar, Calculator, MessageSquare, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
 export default async function MemberOverviewPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Ambil statistik ringkas dari database
-  const { count: favoriteCount } = await supabase
-    .from('property_favorites')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user?.id);
-
-  const { count: surveyCount } = await supabase
-    .from('property_surveys')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user?.id);
+  const { count: favCount } = await supabase.from("user_favorites").select("*", { count: "exact", head: true }).eq("user_id", user?.id);
+  const { count: surveyCount } = await supabase.from("property_surveys").select("*", { count: "exact", head: true }).eq("user_id", user?.id);
+  const { count: calcCount } = await supabase.from("kpr_simulations").select("*", { count: "exact", head: true }).eq("user_id", user?.id);
+  const { count: notifCount } = await supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", user?.id).eq("is_read", false);
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold font-heading text-slate-900">Dashboard Member</h1>
-        <p className="text-sm text-slate-500">Kelola properti favorit, riwayat simulasi, dan jadwal survei Anda di sini.</p>
-      </div>
-
-      {/* Banner Status Membership */}
-      <div className="bg-linear-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-[#1C2541] border border-amber-500/20 p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2.5 py-1 rounded-full font-semibold border border-emerald-500/30">
-              🟢 Member Gratis (Aktif)
-            </span>
-          </div>
-          <h2 className="text-xl font-bold">Akses AI Match Unlimited & Favorite Tanpa Batas</h2>
-          <p className="text-xs text-slate-300 mt-1">Tingkatkan ke Smart Buyer untuk membuka Property Health Score & Hidden Cost Analyzer.</p>
+          <span className="bg-amber-500/20 text-amber-400 text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border border-amber-500/30 inline-block mb-3">
+            Overview Akun Member
+          </span>
+          <h1 className="text-3xl font-extrabold font-heading text-white">Dashboard Utama</h1>
+          <p className="text-xs text-slate-300 mt-1">Pantau properti favorit, jadwal survey, dan riwayat aktivitas Anda dalam satu tempat.</p>
         </div>
-        <Link 
-          href="/upgrade" 
-          className="bg-white text-slate-900 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors shadow-sm"
-        >
-          Upgrade Paket 🚀
+        <Link href="/pricing" className="px-5 py-3 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition-all flex items-center gap-2">
+          Eksplor Paket Elite <ArrowUpRight className="w-4 h-4" />
         </Link>
       </div>
 
-      {/* Kartu Statistik Cepat */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
-            <Heart className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Properti Favorit</p>
-            <h3 className="text-xl font-bold text-slate-900">{favoriteCount || 0} Unit</h3>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-[#1C2541]/60 border border-slate-800 p-6 rounded-2xl flex items-center gap-4">
+          <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20"><Heart className="w-6 h-6" /></div>
+          <div><p className="text-xs text-slate-400 font-medium">Favorit</p><h3 className="text-xl font-bold text-white mt-1">{favCount || 0} Unit</h3></div>
         </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-            <Calendar className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Jadwal Survey</p>
-            <h3 className="text-xl font-bold text-slate-900">{surveyCount || 0} Agenda</h3>
-          </div>
+        <div className="bg-[#1C2541]/60 border border-slate-800 p-6 rounded-2xl flex items-center gap-4">
+          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20"><Calendar className="w-6 h-6" /></div>
+          <div><p className="text-xs text-slate-400 font-medium">Jadwal Survey</p><h3 className="text-xl font-bold text-white mt-1">{surveyCount || 0} Agenda</h3></div>
         </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">AI Match Status</p>
-            <h3 className="text-xl font-bold text-emerald-600">Unlimited</h3>
-          </div>
+        <div className="bg-[#1C2541]/60 border border-slate-800 p-6 rounded-2xl flex items-center gap-4">
+          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-xl border border-blue-500/20"><Calculator className="w-6 h-6" /></div>
+          <div><p className="text-xs text-slate-400 font-medium">Simulasi KPR</p><h3 className="text-xl font-bold text-white mt-1">{calcCount || 0} Kalkulasi</h3></div>
+        </div>
+        <div className="bg-[#1C2541]/60 border border-slate-800 p-6 rounded-2xl flex items-center gap-4">
+          <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20"><MessageSquare className="w-6 h-6" /></div>
+          <div><p className="text-xs text-slate-400 font-medium">Notifikasi Baru</p><h3 className="text-xl font-bold text-white mt-1">{notifCount || 0} Pesan</h3></div>
         </div>
       </div>
     </div>
