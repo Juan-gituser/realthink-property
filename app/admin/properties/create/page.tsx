@@ -1,19 +1,23 @@
+// app/admin/properties/create/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Upload, Loader2, CheckCircle2 } from "lucide-react";
+import { Building, ImagePlus, X, Save, ArrowLeft, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function CreatePropertyPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  // State Form
+  // Form State
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [status, setStatus] = useState<"dijual" | "disewa">("dijual");
   const [category, setCategory] = useState("Rumah");
+  const [legality, setLegality] = useState("SHM"); // State untuk Legalitas
   const [location, setLocation] = useState("");
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
@@ -21,13 +25,12 @@ export default function CreatePropertyPage() {
   const [bathrooms, setBathrooms] = useState<number | "">("");
   const [landArea, setLandArea] = useState<number | "">("");
   const [buildingArea, setBuildingArea] = useState<number | "">("");
+  const [description, setDescription] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
 
-  // State File & Upload Status
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // State untuk Multiple Files & Previews
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   // Helper untuk slug URL dari judul
   const generateSlug = (text: string) => {
@@ -38,54 +41,67 @@ export default function CreatePropertyPage() {
       .replace(/-+/g, "-");
   };
 
-  // Handler Pilih File Gambar
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
+  // Handler saat memilih file foto
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const filesArray = Array.from(e.target.files);
+
+    setImageFiles((prev) => [...prev, ...filesArray]);
+
+    const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
   };
 
-  // Handler Submit Form
+  // Handler untuk menghapus foto dari list pilihan
+  const handleRemoveImage = (index: number) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handler Submit Form ke Supabase
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setErrorMsg(null);
+    setErrorMsg("");
 
     try {
-      if (!imageFile) {
-        throw new Error("Silakan pilih gambar utama properti terlebih dahulu.");
+      if (imageFiles.length === 0) {
+        throw new Error("Silakan pilih minimal satu foto utama properti terlebih dahulu.");
       }
 
-      // 1. Upload Gambar ke Supabase Storage Bucket 'properties'
-      const fileExt = imageFile.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `listings/${fileName}`;
+      const uploadedUrls: string[] = [];
 
-      const { error: uploadError } = await supabase.storage
-        .from("properties")
-        .upload(filePath, imageFile);
+      // 1. Upload semua foto ke Supabase Storage secara berurutan
+      for (const file of imageFiles) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `listings/${fileName}`;
 
-      if (uploadError) {
-        throw new Error(`Gagal upload gambar: ${uploadError.message}`);
+        const { error: uploadError } = await supabase.storage
+          .from("properties")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from("properties")
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrlData.publicUrl);
       }
 
-      // 2. Dapatkan Public URL Gambar
-      const { data: publicUrlData } = supabase.storage.from("properties").getPublicUrl(filePath);
-
-      const imageUrl = publicUrlData.publicUrl;
-
-      // 3. Simpan Data Properti ke Tabel 'properties' di Supabase Database
+      // 2. Buat slug unik
       const slug = `${generateSlug(title)}-${Date.now().toString().slice(-4)}`;
 
-      const { error: insertError } = await supabase.from("properties").insert([
+      // 3. Simpan data properti ke database tabel 'properties'
+      const { error: dbError } = await supabase.from("properties").insert([
         {
           title,
           slug,
           price,
           status,
           category,
+          legality, // Menyimpan data legalitas
           location,
           city,
           district,
@@ -93,271 +109,321 @@ export default function CreatePropertyPage() {
           bathrooms: Number(bathrooms) || 0,
           land_area: Number(landArea) || 0,
           building_area: Number(buildingArea) || 0,
-          image_url: imageUrl,
+          description,
+          image_url: uploadedUrls[0],
+          images: uploadedUrls,
           is_featured: isFeatured,
         },
       ]);
 
-      if (insertError) {
-        throw new Error(`Gagal menyimpan data: ${insertError.message}`);
-      }
+      if (dbError) throw dbError;
 
       alert("Properti berhasil ditambahkan!");
-      router.push("/admin/properties"); // Redireksi ke halaman daftar properti
-    } catch (err: unknown) {
+      router.push("/admin/properties");
+      router.refresh();
+    } catch (err: any) {
       console.error(err);
-      if (err instanceof Error) {
-        setErrorMsg(err.message);
-      } else {
-        setErrorMsg("Terjadi kesalahan saat menyimpan data.");
-      }
+      setErrorMsg(err.message || "Terjadi kesalahan saat menyimpan properti.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
-      {/* Tombol Kembali & Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/admin/properties"
-          className="rounded-xl border border-gray-200 p-2 transition hover:bg-gray-100"
-        >
-          <ArrowLeft className="h-5 w-5 text-gray-600" />
-        </Link>
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-gray-900">Tambah Properti Baru</h1>
-          <p className="text-sm text-gray-500">
-            Isi detail spesifikasi dan unggah gambar properti ke database.
-          </p>
+    <div className="mx-auto max-w-4xl space-y-6">
+      {/* Header Halaman */}
+      <div className="flex flex-col justify-between gap-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin/properties"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-600 transition hover:bg-gray-100"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <div>
+            <span className="mb-1 inline-block rounded-full bg-amber-50 px-3 py-1 text-[10px] font-bold tracking-widest text-amber-600 uppercase border border-amber-200">
+              Manajemen Properti
+            </span>
+            <h1 className="font-heading text-2xl font-bold text-gray-900">Tambah Properti Baru</h1>
+          </div>
         </div>
       </div>
 
-      {/* Alert Error Jika Ada */}
       {errorMsg && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-700 shadow-sm">
           ⚠️ {errorMsg}
         </div>
       )}
 
-      {/* Form Utama */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
-      >
-        {/* Upload Foto */}
-        <div>
-          <label className="mb-2 block text-sm font-semibold text-gray-700">
-            Foto Utama Properti <span className="text-rose-500">*</span>
-          </label>
-          <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <div className="relative flex h-36 w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 sm:w-48">
-              {imagePreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
-              ) : (
-                <div className="p-2 text-center text-gray-400">
-                  <Upload className="mx-auto mb-1 h-8 w-8" />
-                  <span className="text-xs">Pilih Gambar</span>
-                </div>
-              )}
+      {/* Form Tambah Properti */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Informasi Utama Unit */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+            <div className="rounded-xl bg-amber-50 p-2.5 text-amber-600">
+              <Building className="h-5 w-5" />
             </div>
-            <div className="space-y-2 text-center sm:text-left">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Informasi Utama Unit</h2>
+              <p className="text-xs text-gray-500">Masukkan detail lengkap properti yang akan dijual/disewa.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Judul Properti <span className="text-rose-500">*</span>
+              </label>
               <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
+                type="text"
                 required
-                className="file:bg-primary hover:file:bg-primary/90 cursor-pointer text-sm text-gray-500 file:mr-4 file:rounded-lg file:border-0 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Contoh: Rumah Minimalis Modern Hook Cilandak"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
               />
-              <p className="text-xs text-gray-400">Format PNG, JPG, WEBP maks 5MB.</p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Harga (Teks Tampilan) <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="Contoh: Rp 1.250.000.000"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Status Properti</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "dijual" | "disewa")}
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 bg-white focus:border-amber-500 focus:outline-none"
+              >
+                <option value="dijual">Dijual</option>
+                <option value="disewa">Disewa</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Kategori</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 bg-white focus:border-amber-500 focus:outline-none"
+              >
+                <option value="Rumah">Rumah</option>
+                <option value="Apartemen">Apartemen</option>
+                <option value="Ruko">Ruko</option>
+                <option value="Villa">Villa</option>
+                <option value="Tanah">Tanah</option>
+              </select>
+            </div>
+
+            {/* Input Legalitas */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Legalitas / Sertifikat</label>
+              <select
+                value={legality}
+                onChange={(e) => setLegality(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 bg-white focus:border-amber-500 focus:outline-none"
+              >
+                <option value="SHM">SHM - Sertifikat Hak Milik</option>
+                <option value="HGB">HGB - Hak Guna Bangunan</option>
+                <option value="SHSRS">SHSRS - Sertifikat Hak Satuan Rumah Susun</option>
+                <option value="AJB">AJB - Akta Jual Beli</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Lokasi Ringkas <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Contoh: Cilandak, Jakarta Selatan"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Kota / Kabupaten</label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Jakarta Selatan"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Kecamatan</label>
+              <input
+                type="text"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                placeholder="Cilandak"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
             </div>
           </div>
-        </div>
-
-        <hr className="border-gray-100" />
-
-        {/* Informasi Utama */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              Judul Properti <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Contoh: Rumah Minimalis Modern Hook Cilandak"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
-          </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              Harga (Teks Tampilan) <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Contoh: Rp 1.250.000.000"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              Status Properti
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as "dijual" | "disewa")}
-              className="focus:ring-secondary w-full rounded-lg border bg-white p-2.5 text-sm outline-none focus:ring-1"
-            >
-              <option value="dijual">Dijual</option>
-              <option value="disewa">Disewa</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">Kategori</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border bg-white p-2.5 text-sm outline-none focus:ring-1"
-            >
-              <option value="Rumah">Rumah</option>
-              <option value="Apartemen">Apartemen</option>
-              <option value="Ruko">Ruko</option>
-              <option value="Villa">Villa</option>
-              <option value="Tanah">Tanah</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              Lokasi Ringkas <span className="text-rose-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Contoh: Cilandak, Jakarta Selatan"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              Kota / Kabupaten
-            </label>
-            <input
-              type="text"
-              placeholder="Jakarta Selatan"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">Kecamatan</label>
-            <input
-              type="text"
-              placeholder="Cilandak"
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
+            <label className="mb-1.5 block text-xs font-semibold text-gray-700">Deskripsi Lengkap</label>
+            <textarea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Deskripsikan fasilitas, jumlah kamar, luas tanah, dll..."
+              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
             />
           </div>
         </div>
-
-        <hr className="border-gray-100" />
 
         {/* Spesifikasi Bangunan */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">Kamar Tidur</label>
-            <input
-              type="number"
-              placeholder="3"
-              value={bedrooms}
-              onChange={(e) => setBedrooms(e.target.value ? Number(e.target.value) : "")}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+          <h2 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-3">Spesifikasi Fisik</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Kamar Tidur</label>
+              <input
+                type="number"
+                value={bedrooms}
+                onChange={(e) => setBedrooms(e.target.value ? Number(e.target.value) : "")}
+                placeholder="3"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Kamar Mandi</label>
+              <input
+                type="number"
+                value={bathrooms}
+                onChange={(e) => setBathrooms(e.target.value ? Number(e.target.value) : "")}
+                placeholder="2"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Luas Tanah (m²)</label>
+              <input
+                type="number"
+                value={landArea}
+                onChange={(e) => setLandArea(e.target.value ? Number(e.target.value) : "")}
+                placeholder="120"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">Luas Bangunan (m²)</label>
+              <input
+                type="number"
+                value={buildingArea}
+                onChange={(e) => setBuildingArea(e.target.value ? Number(e.target.value) : "")}
+                placeholder="90"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section Upload Multiple Foto */}
+        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+            <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600">
+              <ImagePlus className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">Galeri Foto Properti</h2>
+              <p className="text-xs text-gray-500">Anda dapat memilih dan mengunggah beberapa foto sekaligus (Foto pertama akan menjadi foto utama).</p>
+            </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">Kamar Mandi</label>
-            <input
-              type="number"
-              placeholder="2"
-              value={bathrooms}
-              onChange={(e) => setBathrooms(e.target.value ? Number(e.target.value) : "")}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              Luas Tanah (m²)
+            <label className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-6 text-center cursor-pointer transition hover:bg-gray-100/50">
+              <div className="flex flex-col items-center space-y-2">
+                <div className="rounded-xl bg-amber-100 p-3 text-amber-600">
+                  <ImagePlus className="h-6 w-6" />
+                </div>
+                <p className="text-xs font-bold text-gray-700">Klik untuk pilih foto atau seret file ke sini</p>
+                <p className="text-[10px] text-gray-400">PNG, JPG, JPEG (Bisa pilih lebih dari satu)</p>
+              </div>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
             </label>
-            <input
-              type="number"
-              placeholder="120"
-              value={landArea}
-              onChange={(e) => setLandArea(e.target.value ? Number(e.target.value) : "")}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-gray-600">
-              Luas Bangunan (m²)
-            </label>
-            <input
-              type="number"
-              placeholder="90"
-              value={buildingArea}
-              onChange={(e) => setBuildingArea(e.target.value ? Number(e.target.value) : "")}
-              className="focus:ring-secondary w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
-            />
-          </div>
+          {imagePreviews.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-gray-700">Foto Terpilih ({imagePreviews.length}):</p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {imagePreviews.map((src, index) => (
+                  <div key={index} className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shadow-xs">
+                    <img src={src} alt={`Preview ${index}`} className="h-full w-full object-cover" />
+                    {index === 0 && (
+                      <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        Utama
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700 cursor-pointer"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Checkbox Featured */}
-        <div className="flex items-center gap-2 pt-2">
+        <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <input
             type="checkbox"
             id="featured"
             checked={isFeatured}
             onChange={(e) => setIsFeatured(e.target.checked)}
-            className="text-primary focus:ring-secondary h-4 w-4 rounded border-gray-300"
+            className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
           />
-          <label htmlFor="featured" className="cursor-pointer text-sm font-medium text-gray-700">
-            Jadikan Properti Pilihan (Featured)
+          <label htmlFor="featured" className="cursor-pointer text-xs font-semibold text-gray-700">
+            Jadikan Properti Pilihan (Featured / Unggulan di Beranda)
           </label>
         </div>
 
-        {/* Button Submit */}
-        <div className="flex justify-end pt-4">
+        {/* Tombol Simpan */}
+        <div className="flex justify-end gap-3">
           <button
             type="submit"
             disabled={loading}
-            className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3 font-semibold text-white transition disabled:opacity-50 sm:w-auto"
+            className="flex items-center gap-2 rounded-xl bg-gray-900 px-6 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-800 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
                 Mengunggah & Menyimpan...
               </>
             ) : (
               <>
-                <CheckCircle2 className="h-4 w-4" /> Simpan Properti
+                <Save className="h-4 w-4 text-amber-400" />
+                Simpan Properti
               </>
             )}
           </button>

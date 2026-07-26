@@ -1,8 +1,10 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 import FloatingConsultation from "@/components/FloatingConsultation";
+import ReactQueryProvider from "@/components/providers/react-query-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,7 +33,9 @@ export default function RootLayout({
         className="bg-background flex min-h-screen flex-col antialiased"
         suppressHydrationWarning
       >
-        <MainLayoutWrapper>{children}</MainLayoutWrapper>
+        <ReactQueryProvider>
+          <MainLayoutWrapper>{children}</MainLayoutWrapper>
+        </ReactQueryProvider>
 
         {/* Tombol Floating Konsultasi (Otomatis hilang jika di /admin) */}
         <FloatingConsultation />
