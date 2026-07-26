@@ -1,11 +1,5 @@
-export type LeadStage = 
-  | "Lead Baru"
-  | "Dihubungi"
-  | "Konsultasi"
-  | "Survey"
-  | "Negosiasi"
-  | "Deal"
-  | "Lost";
+export type LeadStage =
+  "Lead Baru" | "Dihubungi" | "Konsultasi" | "Survey" | "Negosiasi" | "Deal" | "Lost";
 
 export interface LeadActivity {
   id: string;

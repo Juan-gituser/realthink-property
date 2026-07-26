@@ -3,14 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { 
-  Building2, PlusCircle, FileText, 
-  TrendingUp, ArrowRight, Loader2 
-} from "lucide-react";
+import { Building2, PlusCircle, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 
 export default function AdminDashboardPage() {
   const [propertyCount, setPropertyCount] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function getStats() {
@@ -22,8 +19,8 @@ export default function AdminDashboardPage() {
         if (!error && count !== null) {
           setPropertyCount(count);
         }
-      } catch (err) {
-        console.error("Gagal memuat statistik:", err);
+      } catch {
+        // Menggunakan optional catch binding untuk menghindari unused var warning
       } finally {
         setLoading(false);
       }
@@ -33,106 +30,104 @@ export default function AdminDashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      
+    <div className="mx-auto max-w-7xl space-y-6">
       {/* Title */}
       <div>
-        <h1 className="text-2xl font-heading font-bold text-gray-900">
-          Ringkasan Dashboard
-        </h1>
+        <h1 className="font-heading text-2xl font-bold text-gray-900">Ringkasan Dashboard</h1>
         <p className="text-sm text-gray-500">
           Selamat datang kembali di panel kontrol Realthink Property.
         </p>
       </div>
 
       {/* Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {/* Card 1: Total Listing */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
               Total Listing Properti
             </p>
             <div className="text-2xl font-bold text-gray-900">
-              {loading ? <Loader2 className="w-5 h-5 animate-spin text-gray-400" /> : propertyCount ?? 0}
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              ) : (
+                (propertyCount ?? 0)
+              )}
             </div>
           </div>
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-            <Building2 className="w-6 h-6" />
+          <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
+            <Building2 className="h-6 w-6" />
           </div>
         </div>
 
         {/* Card 2: Akses Cepat Tambah */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
               Listing Baru
             </p>
             <Link
               href="/admin/properties/create"
-              className="text-sm font-semibold text-primary hover:underline flex items-center gap-1 mt-1"
+              className="text-primary mt-1 flex items-center gap-1 text-sm font-semibold hover:underline"
             >
-              + Tambah Sekarang <ArrowRight className="w-4 h-4" />
+              + Tambah Sekarang <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-            <PlusCircle className="w-6 h-6" />
+          <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
+            <PlusCircle className="h-6 w-6" />
           </div>
         </div>
 
         {/* Card 3: Status Sistem */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
               Koneksi Supabase
             </p>
-            <p className="text-sm font-bold text-emerald-600 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-600">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500"></span>
               Terhubung
             </p>
           </div>
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-            <TrendingUp className="w-6 h-6" />
+          <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
+            <TrendingUp className="h-6 w-6" />
           </div>
         </div>
-
       </div>
 
       {/* Quick Actions Panel */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-        <h2 className="text-base font-bold text-gray-900 border-b pb-3">
-          Aksi Cepat Manajemen
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="border-b pb-3 text-base font-bold text-gray-900">Aksi Cepat Manajemen</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
             href="/admin/properties/create"
-            className="p-4 rounded-xl border border-gray-200 hover:border-amber-500 hover:bg-amber-50/30 transition flex items-center gap-4 group"
+            className="group flex items-center gap-4 rounded-xl border border-gray-200 p-4 transition hover:border-amber-500 hover:bg-amber-50/30"
           >
-            <div className="p-3 bg-amber-500 text-white rounded-xl group-hover:scale-105 transition">
-              <PlusCircle className="w-5 h-5" />
+            <div className="rounded-xl bg-amber-500 p-3 text-white transition group-hover:scale-105">
+              <PlusCircle className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-gray-900">Input Properti Baru</h3>
+              <h3 className="text-sm font-bold text-gray-900">Input Properti Baru</h3>
               <p className="text-xs text-gray-500">Unggah foto dan data spesifikasi unit baru.</p>
             </div>
           </Link>
 
           <Link
             href="/admin/properties"
-            className="p-4 rounded-xl border border-gray-200 hover:border-slate-800 hover:bg-slate-50 transition flex items-center gap-4 group"
+            className="group flex items-center gap-4 rounded-xl border border-gray-200 p-4 transition hover:border-slate-800 hover:bg-slate-50"
           >
-            <div className="p-3 bg-slate-900 text-white rounded-xl group-hover:scale-105 transition">
-              <Building2 className="w-5 h-5" />
+            <div className="rounded-xl bg-slate-900 p-3 text-white transition group-hover:scale-105">
+              <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-gray-900">Kelola Daftar Properti</h3>
-              <p className="text-xs text-gray-500">Lihat, ubah status, atau hapus listing properti.</p>
+              <h3 className="text-sm font-bold text-gray-900">Kelola Daftar Properti</h3>
+              <p className="text-xs text-gray-500">
+                Lihat, ubah status, atau hapus listing properti.
+              </p>
             </div>
           </Link>
         </div>
       </div>
-
     </div>
   );
 }

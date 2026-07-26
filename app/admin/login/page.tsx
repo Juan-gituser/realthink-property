@@ -33,18 +33,20 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 bg-primary/10 rounded-full text-secondary mb-2">
-            <Building2 className="w-10 h-10" />
+    <div className="bg-primary flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-2xl">
+        <div className="space-y-2 text-center">
+          <div className="bg-primary/10 text-secondary mb-2 inline-flex rounded-full p-3">
+            <Building2 className="h-10 w-10" />
           </div>
-          <h1 className="text-2xl font-bold text-primary font-heading">Realthink Admin</h1>
-          <p className="text-xs text-muted-foreground">Masuk untuk mengelola portal properti Anda</p>
+          <h1 className="text-primary font-heading text-2xl font-bold">Realthink Admin</h1>
+          <p className="text-muted-foreground text-xs">
+            Masuk untuk mengelola portal properti Anda
+          </p>
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-red-50 text-red-600 border border-red-200 text-xs rounded-lg text-center">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-center text-xs text-red-600">
             {errorMsg}
           </div>
         )}
@@ -59,9 +61,9 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@realthink.com"
-                className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:ring-1 focus:ring-secondary outline-none"
+                className="focus:ring-secondary w-full rounded-lg border py-2.5 pr-4 pl-10 text-sm outline-none focus:ring-1"
               />
-              <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              <Mail className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
             </div>
           </div>
 
@@ -74,18 +76,22 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:ring-1 focus:ring-secondary outline-none"
+                className="focus:ring-secondary w-full rounded-lg border py-2.5 pr-4 pl-10 text-sm outline-none focus:ring-1"
               />
-              <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+              <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
             </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition flex justify-center items-center gap-2 shadow-md"
+            className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg py-3 font-semibold text-white shadow-md transition"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin text-secondary" /> : "Masuk ke Dashboard"}
+            {loading ? (
+              <Loader2 className="text-secondary h-5 w-5 animate-spin" />
+            ) : (
+              "Masuk ke Dashboard"
+            )}
           </button>
         </form>
       </div>

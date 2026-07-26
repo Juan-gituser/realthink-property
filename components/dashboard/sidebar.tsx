@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Building2,
@@ -31,7 +32,7 @@ import {
 interface NavItem {
   title: string;
   href: string;
-  icon: any;
+  icon: LucideIcon;
 }
 
 interface NavGroup {
@@ -101,15 +102,15 @@ export function Sidebar() {
   return (
     <>
       {/* Mobile Header Toggle */}
-      <div className="lg:hidden flex items-center justify-between bg-[#0B132B] border-b border-slate-800 px-4 py-3 sticky top-0 z-50">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-slate-800 bg-[#0B132B] px-4 py-3 lg:hidden">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileOpen(true)}
-            className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+            className="rounded-xl bg-slate-800 p-2 text-slate-300 hover:text-white"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="h-5 w-5" />
           </button>
-          <span className="font-extrabold text-white text-sm tracking-wider font-heading">
+          <span className="font-heading text-sm font-extrabold tracking-wider text-white">
             REALTHINK <span className="text-amber-400">ADMIN</span>
           </span>
         </div>
@@ -123,7 +124,7 @@ export function Sidebar() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsMobileOpen(false)}
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 lg:hidden"
+            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm lg:hidden"
           />
         )}
       </AnimatePresence>
@@ -136,12 +137,12 @@ export function Sidebar() {
           x: isMobileOpen ? 0 : "-100%",
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`fixed top-0 bottom-0 left-0 z-50 bg-[#0B132B] border-r border-slate-800 flex flex-col shadow-2xl lg:translate-x-0 overflow-hidden`}
+        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col overflow-hidden border-r border-slate-800 bg-[#0B132B] shadow-2xl lg:translate-x-0`}
       >
         {/* Sidebar Brand Header */}
-        <div className="p-5 flex items-center justify-between border-b border-slate-800/80">
+        <div className="flex items-center justify-between border-b border-slate-800/80 p-5">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-2xl bg-linear-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-extrabold shrink-0 shadow-lg shadow-amber-500/20">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-amber-400 to-amber-600 font-extrabold text-slate-950 shadow-lg shadow-amber-500/20">
               RT
             </div>
             {!isCollapsed && (
@@ -151,10 +152,10 @@ export function Sidebar() {
                 exit={{ opacity: 0 }}
                 className="flex flex-col truncate"
               >
-                <span className="font-extrabold text-white text-sm tracking-tight font-heading truncate">
+                <span className="font-heading truncate text-sm font-extrabold tracking-tight text-white">
                   REALTHINK
                 </span>
-                <span className="text-[10px] text-amber-400 font-semibold uppercase tracking-widest">
+                <span className="text-[10px] font-semibold tracking-widest text-amber-400 uppercase">
                   Property Admin
                 </span>
               </motion.div>
@@ -164,26 +165,30 @@ export function Sidebar() {
           {/* Close button for Mobile */}
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800/50"
+            className="rounded-lg bg-slate-800/50 p-1.5 text-slate-400 hover:text-white lg:hidden"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
 
           {/* Collapse Toggle for Desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex p-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-all shadow-md"
+            className="hidden rounded-xl border border-slate-800 bg-slate-900 p-1.5 text-slate-400 shadow-md transition-all hover:border-slate-700 hover:text-white lg:flex"
           >
-            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
           </button>
         </div>
 
         {/* Navigation Scrollable Area */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 custom-scrollbar">
+        <div className="custom-scrollbar flex-1 space-y-6 overflow-y-auto px-3 py-4">
           {menuGroups.map((group, groupIdx) => (
             <div key={groupIdx} className="space-y-1.5">
               {!isCollapsed && (
-                <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400/80 mb-2">
+                <p className="mb-2 px-3 text-[10px] font-bold tracking-wider text-slate-400/80 uppercase">
                   {group.label}
                 </p>
               )}
@@ -196,14 +201,14 @@ export function Sidebar() {
                     key={itemIdx}
                     href={item.href}
                     onClick={() => setIsMobileOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-medium transition-all group relative ${
+                    className={`group relative flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs font-medium transition-all ${
                       isActive
-                        ? "bg-amber-500 text-slate-950 font-bold shadow-lg shadow-amber-500/25"
+                        ? "bg-amber-500 font-bold text-slate-950 shadow-lg shadow-amber-500/25"
                         : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
                     }`}
                   >
                     <Icon
-                      className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                      className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-110 ${
                         isActive ? "text-slate-950" : "text-amber-400"
                       }`}
                     />
@@ -211,7 +216,7 @@ export function Sidebar() {
 
                     {/* Tooltip for collapsed state */}
                     {isCollapsed && (
-                      <div className="absolute left-full ml-3 px-3 py-1.5 bg-slate-900 text-white text-xs rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 border border-slate-800">
+                      <div className="pointer-events-none absolute left-full z-50 ml-3 rounded-xl border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs whitespace-nowrap text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                         {item.title}
                       </div>
                     )}
@@ -224,14 +229,14 @@ export function Sidebar() {
 
         {/* User Footer Profile Mini / Status */}
         {!isCollapsed && (
-          <div className="p-4 border-t border-slate-800/80 bg-slate-900/40 m-3 rounded-2xl">
+          <div className="m-3 rounded-2xl border-t border-slate-800/80 bg-slate-900/40 p-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/20 text-xs font-bold text-amber-400">
                 A
               </div>
               <div className="flex flex-col truncate">
-                <span className="text-xs font-bold text-white truncate">Administrator</span>
-                <span className="text-[10px] text-emerald-400 truncate">System Online</span>
+                <span className="truncate text-xs font-bold text-white">Administrator</span>
+                <span className="truncate text-[10px] text-emerald-400">System Online</span>
               </div>
             </div>
           </div>

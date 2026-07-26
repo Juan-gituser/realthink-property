@@ -3,9 +3,18 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { 
-  Plus, Search, Edit, Trash2, Eye, 
-  Building2, CheckCircle2, Clock, Ban, Star, Loader2 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  Building2,
+  CheckCircle2,
+  Clock,
+  Ban,
+  Star,
+  Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,6 +32,21 @@ interface Property {
   imageUrl: string;
 }
 
+interface SupabasePropertyRow {
+  id: string;
+  title: string;
+  slug: string;
+  price: string;
+  category: string;
+  status?: "dijual" | "disewa";
+  listing_status?: "published" | "draft" | "sold";
+  city: string;
+  is_featured?: boolean;
+  updated_at?: string;
+  created_at?: string;
+  image_url?: string;
+}
+
 export default function AdminPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -33,52 +57,60 @@ export default function AdminPropertiesPage() {
 
   const supabase = createClient();
 
-  // Fungsi Mengambil Data dari Supabase
-  const fetchProperties = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Gagal memuat data properti:", error.message);
-        return;
-      }
-
-      if (data) {
-        // Mapping kolom database (snake_case) ke state frontend (camelCase jika diperlukan)
-        const formattedData: Property[] = data.map((item: any) => ({
-          id: item.id,
-          title: item.title,
-          slug: item.slug,
-          price: item.price,
-          category: item.category,
-          status: item.status || "dijual",
-          listingStatus: item.listing_status || "published",
-          city: item.city,
-          isFeatured: item.is_featured || false,
-          updatedAt: new Date(item.updated_at || item.created_at).toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          }),
-          imageUrl: item.image_url || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=300&q=80",
-        }));
-
-        setProperties(formattedData);
-      }
-    } catch (err) {
-      console.error("Terjadi kesalahan:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Mengambil data di dalam useEffect tanpa memanggil setLoading(true) di awal
   useEffect(() => {
+    let isMounted = true;
+
+    const fetchProperties = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("properties")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!isMounted) return;
+
+        if (error) {
+          console.error("Gagal memuat data properti:", error.message);
+          return;
+        }
+
+        if (data) {
+          const formattedData: Property[] = (data as SupabasePropertyRow[]).map((item) => ({
+            id: item.id,
+            title: item.title,
+            slug: item.slug,
+            price: item.price,
+            category: item.category,
+            status: item.status || "dijual",
+            listingStatus: item.listing_status || "published",
+            city: item.city,
+            isFeatured: item.is_featured || false,
+            updatedAt: new Date(item.updated_at || item.created_at || Date.now()).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
+            imageUrl:
+              item.image_url ||
+              "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=300&q=80",
+          }));
+
+          setProperties(formattedData);
+        }
+      } catch (err: unknown) {
+        if (isMounted) console.error("Terjadi kesalahan:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
     fetchProperties();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
 
   // Filter Data
   const filteredProperties = useMemo(() => {
@@ -90,8 +122,7 @@ export default function AdminPropertiesPage() {
       const matchesStatus =
         selectedListingStatus === "Semua" || item.listingStatus === selectedListingStatus;
 
-      const matchesCategory =
-        selectedCategory === "Semua" || item.category === selectedCategory;
+      const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -100,10 +131,7 @@ export default function AdminPropertiesPage() {
   // Handler Hapus Properti dari Supabase
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("properties")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("properties").delete().eq("id", id);
 
       if (error) {
         alert("Gagal menghapus properti: " + error.message);
@@ -112,7 +140,7 @@ export default function AdminPropertiesPage() {
 
       setProperties((prev) => prev.filter((p) => p.id !== id));
       setDeleteId(null);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Error deleting property:", err);
     }
   };
@@ -144,82 +172,78 @@ export default function AdminPropertiesPage() {
   }, [properties]);
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
       {/* Header & Quick Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-gray-900">
-            Kelola Properti
-          </h1>
+          <h1 className="font-heading text-2xl font-bold text-gray-900">Kelola Properti</h1>
           <p className="text-sm text-gray-500">
             Daftar seluruh listing properti yang terdaftar di database Realthink.
           </p>
         </div>
         <Link
           href="/admin/properties/create"
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold px-4 py-2.5 rounded-xl transition shadow-sm text-sm"
+          className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition"
         >
-          <Plus className="w-4 h-4" /> Tambah Properti Baru
+          <Plus className="h-4 w-4" /> Tambah Properti Baru
         </Link>
       </div>
 
       {/* Ringkasan Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
-            <Building2 className="w-5 h-5" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg bg-blue-50 p-2.5 text-blue-600">
+            <Building2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Total Listing</p>
+            <p className="text-xs font-medium text-gray-500">Total Listing</p>
             <p className="text-xl font-bold text-gray-900">{stats.total}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg bg-emerald-50 p-2.5 text-emerald-600">
+            <CheckCircle2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Published</p>
+            <p className="text-xs font-medium text-gray-500">Published</p>
             <p className="text-xl font-bold text-gray-900">{stats.published}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-amber-50 text-amber-600 rounded-lg">
-            <Clock className="w-5 h-5" />
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg bg-amber-50 p-2.5 text-amber-600">
+            <Clock className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Draft</p>
+            <p className="text-xs font-medium text-gray-500">Draft</p>
             <p className="text-xl font-bold text-gray-900">{stats.draft}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-rose-50 text-rose-600 rounded-lg">
-            <Ban className="w-5 h-5" />
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg bg-rose-50 p-2.5 text-rose-600">
+            <Ban className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Terjual / Tersewa</p>
+            <p className="text-xs font-medium text-gray-500">Terjual / Tersewa</p>
             <p className="text-xl font-bold text-gray-900">{stats.sold}</p>
           </div>
         </div>
       </div>
 
       {/* Panel Filter */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          
+      <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {/* Search */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+            <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="Cari judul properti atau kota..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-secondary"
+              className="focus:ring-secondary w-full rounded-lg border py-2 pr-3 pl-9 text-sm outline-none focus:ring-1"
             />
           </div>
 
@@ -228,7 +252,7 @@ export default function AdminPropertiesPage() {
             <select
               value={selectedListingStatus}
               onChange={(e) => setSelectedListingStatus(e.target.value)}
-              className="w-full py-2 px-3 border rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-secondary"
+              className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:ring-1"
             >
               <option value="Semua">Semua Status Listing</option>
               <option value="published">Published</option>
@@ -242,7 +266,7 @@ export default function AdminPropertiesPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full py-2 px-3 border rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-secondary"
+              className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:ring-1"
             >
               <option value="Semua">Semua Kategori</option>
               <option value="Rumah">Rumah</option>
@@ -251,16 +275,15 @@ export default function AdminPropertiesPage() {
               <option value="Villa">Villa</option>
             </select>
           </div>
-
         </div>
       </div>
 
       {/* Tabel Data Properti */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase font-semibold text-gray-600 tracking-wider">
+              <tr className="border-b border-gray-200 bg-gray-50 text-xs font-semibold tracking-wider text-gray-600 uppercase">
                 <th className="p-4">Properti</th>
                 <th className="p-4">Kategori & Tipe</th>
                 <th className="p-4">Harga</th>
@@ -274,19 +297,18 @@ export default function AdminPropertiesPage() {
                 <tr>
                   <td colSpan={6} className="p-12 text-center text-gray-500">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                      <Loader2 className="text-primary h-6 w-6 animate-spin" />
                       <p className="text-sm">Memuat data properti...</p>
                     </div>
                   </td>
                 </tr>
               ) : filteredProperties.length > 0 ? (
                 filteredProperties.map((property) => (
-                  <tr key={property.id} className="hover:bg-gray-50/80 transition">
-                    
+                  <tr key={property.id} className="transition hover:bg-gray-50/80">
                     {/* Property Thumbnail & Title */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden border border-gray-200 bg-gray-100 shrink-0">
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                           <Image
                             src={property.imageUrl}
                             alt={property.title}
@@ -295,22 +317,24 @@ export default function AdminPropertiesPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <p className="font-semibold text-gray-900 line-clamp-1">
+                          <p className="line-clamp-1 font-semibold text-gray-900">
                             {property.title}
                           </p>
                           <p className="text-xs text-gray-500">{property.city}</p>
-                          
+
                           {/* Toggle Featured Button Interaktif */}
                           <button
                             onClick={() => handleToggleFeatured(property.id, property.isFeatured)}
-                            className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded transition ${
-                              property.isFeatured 
-                                ? "bg-amber-100 text-amber-800 hover:bg-amber-200" 
+                            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition ${
+                              property.isFeatured
+                                ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
                                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                             }`}
                             title="Klik untuk mengubah status unggulan"
                           >
-                            <Star className={`w-3 h-3 ${property.isFeatured ? "fill-amber-600 text-amber-600" : ""}`} />
+                            <Star
+                              className={`h-3 w-3 ${property.isFeatured ? "fill-amber-600 text-amber-600" : ""}`}
+                            />
                             {property.isFeatured ? "Featured" : "Jadikan Featured"}
                           </button>
                         </div>
@@ -320,9 +344,7 @@ export default function AdminPropertiesPage() {
                     {/* Category & Status */}
                     <td className="p-4 whitespace-nowrap">
                       <div className="space-y-1">
-                        <span className="font-medium text-gray-800 block">
-                          {property.category}
-                        </span>
+                        <span className="block font-medium text-gray-800">{property.category}</span>
                         <span className="text-xs text-gray-500 capitalize">
                           Tipe: {property.status}
                         </span>
@@ -330,76 +352,76 @@ export default function AdminPropertiesPage() {
                     </td>
 
                     {/* Price */}
-                    <td className="p-4 whitespace-nowrap font-semibold text-gray-900">
+                    <td className="p-4 font-semibold whitespace-nowrap text-gray-900">
                       {property.price}
                     </td>
 
                     {/* Listing Status Badge */}
                     <td className="p-4 whitespace-nowrap">
                       {property.listingStatus === "published" && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                           Published
                         </span>
                       )}
                       {property.listingStatus === "draft" && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
                           Draft
                         </span>
                       )}
                       {property.listingStatus === "sold" && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
                           Terjual
                         </span>
                       )}
                     </td>
 
                     {/* Updated At */}
-                    <td className="p-4 whitespace-nowrap text-xs text-gray-500">
+                    <td className="p-4 text-xs whitespace-nowrap text-gray-500">
                       {property.updatedAt}
                     </td>
 
                     {/* Action Buttons */}
-                    <td className="p-4 whitespace-nowrap text-center">
+                    <td className="p-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         {/* View */}
                         <Link
                           href={`/properti/${property.slug}`}
                           target="_blank"
                           title="Lihat di situs"
-                          className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition"
+                          className="hover:text-primary rounded-lg p-2 text-gray-500 transition hover:bg-gray-150"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="h-4 w-4" />
                         </Link>
 
                         {/* Edit */}
                         <Link
                           href={`/admin/properties/edit/${property.id}`}
                           title="Edit Properti"
-                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          className="rounded-lg p-2 text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="h-4 w-4" />
                         </Link>
 
                         {/* Delete Trigger */}
                         <button
                           onClick={() => setDeleteId(property.id)}
                           title="Hapus Properti"
-                          className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                          className="rounded-lg p-2 text-gray-500 transition hover:bg-rose-50 hover:text-rose-600"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
-
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
-                    Tidak ada properti yang sesuai dengan filter pencarian atau database masih kosong.
+                    Tidak ada properti yang sesuai dengan filter pencarian atau database masih
+                    kosong.
                   </td>
                 </tr>
               )}
@@ -411,7 +433,7 @@ export default function AdminPropertiesPage() {
       {/* Confirmation Modal Delete */}
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
+          <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900">Hapus Listing Properti?</h3>
             <p className="text-sm text-gray-500">
               Tindakan ini tidak dapat dibatalkan. Properti akan dihapus permanen dari database.
@@ -419,13 +441,13 @@ export default function AdminPropertiesPage() {
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setDeleteId(null)}
-                className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
               >
                 Batal
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
-                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition shadow"
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-rose-700"
               >
                 Hapus
               </button>
@@ -433,7 +455,6 @@ export default function AdminPropertiesPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

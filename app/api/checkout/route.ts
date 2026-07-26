@@ -7,18 +7,16 @@ export async function GET(request: Request) {
   const billingCycle = url.searchParams.get("cycle") || "monthly";
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return NextResponse.redirect(new URL("/login?next=/pricing", request.url));
   }
 
   // 1. Ambil detail harga paket dari database
-  const { data: plan } = await supabase
-    .from("plans")
-    .select("*")
-    .eq("id", planId)
-    .single();
+  const { data: plan } = await supabase.from("plans").select("*").eq("id", planId).single();
 
   if (!plan) {
     return NextResponse.json({ error: "Plan not found" }, { status: 404 });
@@ -60,5 +58,7 @@ export async function GET(request: Request) {
   */
 
   // Untuk keperluan struktur, arahkan sementara ke halaman simulasi pembayaran sukses
-  return NextResponse.redirect(new URL(`/dashboard/member?success=pending&order=${orderId}`, request.url));
+  return NextResponse.redirect(
+    new URL(`/dashboard/member?success=pending&order=${orderId}`, request.url)
+  );
 }

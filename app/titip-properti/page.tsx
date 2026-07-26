@@ -2,7 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Building2, Send, CheckCircle2, Upload, MapPin, DollarSign, Home, User, Phone } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Send,
+  CheckCircle2,
+  Upload,
+  MapPin,
+  DollarSign,
+  Home,
+  User,
+  Phone,
+} from "lucide-react";
 
 export default function TitipPropertiPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -21,7 +32,9 @@ export default function TitipPropertiPage() {
     telepon: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -32,29 +45,37 @@ export default function TitipPropertiPage() {
   };
 
   return (
-    <div className="bg-gray-50/50 min-h-screen py-10 pt-20">
-      <div className="container mx-auto px-4 max-w-3xl space-y-6">
+    <div className="min-h-screen bg-gray-50/50 py-10 pt-20">
+      <div className="container mx-auto max-w-3xl space-y-6 px-4">
         {/* Header & Back Button */}
         <div>
-          <Link href="/" className="text-xs font-semibold text-amber-600 flex items-center gap-1 mb-2 hover:underline">
-            <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Beranda
+          <Link
+            href="/"
+            className="mb-2 flex items-center gap-1 text-xs font-semibold text-amber-600 hover:underline"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Beranda
           </Link>
-          <h1 className="text-3xl font-heading font-bold text-gray-900">
+          <h1 className="font-heading text-3xl font-bold text-gray-900">
             Titip Jual / Sewa Properti
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Pasarkan properti Anda dengan mudah bersama Realthink Property dan menjangkau ribuan calon pembeli potensial.
+          <p className="mt-1 text-sm text-gray-500">
+            Pasarkan properti Anda dengan mudah bersama Realthink Property dan menjangkau ribuan
+            calon pembeli potensial.
           </p>
         </div>
 
         {submitted ? (
-          <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center space-y-4">
-            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-8 h-8" />
+          <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
+              <CheckCircle2 className="h-8 w-8" />
             </div>
-            <h3 className="text-2xl font-heading font-bold text-gray-900">Properti Berhasil Dititipkan!</h3>
-            <p className="text-gray-600 text-sm max-w-md mx-auto">
-              Terima kasih, <span className="font-semibold">{formData.namaPemilik}</span>. Tim marketing kami akan segera meninjau informasi properti Anda dan menghubungi nomor <span className="font-semibold">{formData.telepon}</span>.
+            <h3 className="font-heading text-2xl font-bold text-gray-900">
+              Properti Berhasil Dititipkan!
+            </h3>
+            <p className="mx-auto max-w-md text-sm text-gray-600">
+              Terima kasih, <span className="font-semibold">{formData.namaPemilik}</span>. Tim
+              marketing kami akan segera meninjau informasi properti Anda dan menghubungi nomor{" "}
+              <span className="font-semibold">{formData.telepon}</span>.
             </p>
             <div className="pt-4">
               <button
@@ -75,20 +96,23 @@ export default function TitipPropertiPage() {
                     telepon: "",
                   });
                 }}
-                className="bg-primary text-white px-6 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-all shadow-md"
+                className="bg-primary hover:bg-primary/90 rounded-xl px-6 py-2.5 text-sm font-medium text-white shadow-md transition-all"
               >
                 Titip Properti Lainnya
               </button>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-white p-6 md:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8"
+          >
             <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-              <div className="p-2.5 bg-amber-100 text-amber-600 rounded-xl">
-                <Building2 className="w-5 h-5" />
+              <div className="rounded-xl bg-amber-100 p-2.5 text-amber-600">
+                <Building2 className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-heading font-bold text-gray-900 text-lg">
+                <h3 className="font-heading text-lg font-bold text-gray-900">
                   Formulir Titip Properti
                 </h3>
                 <p className="text-xs text-gray-500">
@@ -100,7 +124,7 @@ export default function TitipPropertiPage() {
             <div className="space-y-4">
               {/* Judul Properti */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="mb-1 block text-xs font-semibold text-gray-700">
                   Judul Properti <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -110,35 +134,35 @@ export default function TitipPropertiPage() {
                   value={formData.judul}
                   onChange={handleChange}
                   placeholder="Contoh: Dijual Rumah Mewah Minimalist di Jakarta Selatan"
-                  className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                  className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                 />
               </div>
 
               {/* Kategori & Tipe Properti */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
                     Kategori Transaksi <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="kategori"
                     value={formData.kategori}
                     onChange={handleChange}
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm bg-white outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   >
                     <option value="Dijual">Dijual</option>
                     <option value="Disewa">Disewa</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
                     Tipe Properti <span className="text-red-500">*</span>
                   </label>
                   <select
                     name="tipe"
                     value={formData.tipe}
                     onChange={handleChange}
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm bg-white outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   >
                     <option value="Rumah">Rumah</option>
                     <option value="Apartemen">Apartemen</option>
@@ -150,13 +174,15 @@ export default function TitipPropertiPage() {
               </div>
 
               {/* Harga & Lokasi */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
                     Harga Penawaran (Rp) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-sm font-semibold text-gray-400">Rp</span>
+                    <span className="absolute top-2.5 left-3 text-sm font-semibold text-gray-400">
+                      Rp
+                    </span>
                     <input
                       type="text"
                       name="harga"
@@ -164,12 +190,12 @@ export default function TitipPropertiPage() {
                       value={formData.harga}
                       onChange={handleChange}
                       placeholder="1.500.000.000"
-                      className="w-full pl-10 pr-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                      className="w-full rounded-xl border bg-white py-2.5 pr-3 pl-10 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
                     Lokasi / Alamat Lengkap <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -179,62 +205,70 @@ export default function TitipPropertiPage() {
                     value={formData.lokasi}
                     onChange={handleChange}
                     placeholder="Contoh: Menteng, Jakarta Pusat"
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
               </div>
 
               {/* Spesifikasi Detail */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Kamar Tidur</label>
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
+                    Kamar Tidur
+                  </label>
                   <input
                     type="number"
                     name="kamarTidur"
                     value={formData.kamarTidur}
                     onChange={handleChange}
                     placeholder="3"
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Kamar Mandi</label>
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
+                    Kamar Mandi
+                  </label>
                   <input
                     type="number"
                     name="kamarMandi"
                     value={formData.kamarMandi}
                     onChange={handleChange}
                     placeholder="2"
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Luas Tanah (m²)</label>
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
+                    Luas Tanah (m²)
+                  </label>
                   <input
                     type="number"
                     name="luasTanah"
                     value={formData.luasTanah}
                     onChange={handleChange}
                     placeholder="120"
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Luas Bangunan (m²)</label>
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
+                    Luas Bangunan (m²)
+                  </label>
                   <input
                     type="number"
                     name="luasBangunan"
                     value={formData.luasBangunan}
                     onChange={handleChange}
                     placeholder="100"
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
               </div>
 
               {/* Deskripsi */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="mb-1 block text-xs font-semibold text-gray-700">
                   Deskripsi & Fasilitas Properti
                 </label>
                 <textarea
@@ -243,14 +277,14 @@ export default function TitipPropertiPage() {
                   value={formData.deskripsi}
                   onChange={handleChange}
                   placeholder="Jelaskan keunggulan properti, fasilitas sekitar, kondisi bangunan, dll."
-                  className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                  className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                 ></textarea>
               </div>
 
               {/* Informasi Kontak Pemilik */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+              <div className="grid grid-cols-1 gap-4 border-t border-gray-100 pt-2 md:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
                     Nama Pemilik / Agen <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -260,11 +294,11 @@ export default function TitipPropertiPage() {
                     value={formData.namaPemilik}
                     onChange={handleChange}
                     placeholder="Nama Lengkap"
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="mb-1 block text-xs font-semibold text-gray-700">
                     Nomor WhatsApp / Telepon <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -274,7 +308,7 @@ export default function TitipPropertiPage() {
                     value={formData.telepon}
                     onChange={handleChange}
                     placeholder="081234567890"
-                    className="w-full px-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500 font-semibold text-gray-900 bg-white"
+                    className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-gray-900 outline-none focus:ring-1 focus:ring-amber-500"
                   />
                 </div>
               </div>
@@ -284,9 +318,9 @@ export default function TitipPropertiPage() {
             <div className="pt-4">
               <button
                 type="submit"
-                className="w-full bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary/90 transition-all shadow-md shadow-primary/25 flex items-center justify-center gap-2"
+                className="bg-primary hover:bg-primary/90 shadow-primary/25 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white shadow-md transition-all"
               >
-                <Send className="w-4 h-4" /> Kirim & Pasarkan Properti
+                <Send className="h-4 w-4" /> Kirim & Pasarkan Properti
               </button>
             </div>
           </form>

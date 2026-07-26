@@ -10,14 +10,14 @@ export interface PropertyPerformanceItem {
   conversion_rate: number; // Conversion Rate dalam persen (%)
 }
 
-export type SortField = 
-  | 'property_name' 
-  | 'views' 
-  | 'favorites' 
-  | 'whatsapp_clicks' 
-  | 'surveys' 
-  | 'deals' 
-  | 'ctr' 
-  | 'conversion_rate';
+export type SortField =
+  | "property_name"
+  | "views"
+  | "favorites"
+  | "whatsapp_clicks"
+  | "surveys"
+  | "deals"
+  | "ctr"
+  | "conversion_rate";
 
-export type SortOrder = 'asc' | 'desc';
+export type SortOrder = "asc" | "desc";

@@ -22,14 +22,14 @@ export function StatCard({
 }: StatCardProps) {
   if (isLoading) {
     return (
-      <div className="bg-[#1C2541]/60 border border-slate-800 p-6 rounded-3xl animate-pulse space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="w-10 h-10 bg-slate-800 rounded-xl" />
-          <div className="w-16 h-5 bg-slate-800 rounded-full" />
+      <div className="animate-pulse space-y-4 rounded-3xl border border-slate-800 bg-[#1C2541]/60 p-6">
+        <div className="flex items-center justify-between">
+          <div className="h-10 w-10 rounded-xl bg-slate-800" />
+          <div className="h-5 w-16 rounded-full bg-slate-800" />
         </div>
         <div className="space-y-2">
-          <div className="w-24 h-3 bg-slate-800 rounded" />
-          <div className="w-32 h-7 bg-slate-800 rounded" />
+          <div className="h-3 w-24 rounded bg-slate-800" />
+          <div className="h-7 w-32 rounded bg-slate-800" />
         </div>
       </div>
     );
@@ -50,19 +50,19 @@ export function StatCard({
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="bg-[#1C2541]/70 border border-slate-800 hover:border-amber-500/40 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col justify-between relative overflow-hidden group"
+      className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-800 bg-[#1C2541]/70 p-6 shadow-xl backdrop-blur-xl hover:border-amber-500/40"
     >
-      <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/15 transition-all duration-500 pointer-events-none" />
+      <div className="pointer-events-none absolute top-0 right-0 h-32 w-32 rounded-full bg-amber-500/5 blur-2xl transition-all duration-500 group-hover:bg-amber-500/15" />
 
-      <div className="flex items-center justify-between mb-4">
-        <div className="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl">
-          <Icon className="w-5 h-5" />
+      <div className="mb-4 flex items-center justify-between">
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-400">
+          <Icon className="h-5 w-5" />
         </div>
         <span
-          className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${
+          className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${
             isIncrease
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-              : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+              : "border-rose-500/20 bg-rose-500/10 text-rose-400"
           }`}
         >
           {change}
@@ -71,12 +71,14 @@ export function StatCard({
 
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">{title}</p>
-          <h3 className="text-2xl font-extrabold text-white mt-1 font-heading tracking-tight">{value}</h3>
+          <p className="text-xs font-medium tracking-wider text-slate-400 uppercase">{title}</p>
+          <h3 className="font-heading mt-1 text-2xl font-extrabold tracking-tight text-white">
+            {value}
+          </h3>
         </div>
 
-        <div className="w-20 h-10">
-          <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
+        <div className="h-10 w-20">
+          <svg viewBox="0 0 100 40" className="h-full w-full overflow-visible">
             <polyline
               fill="none"
               stroke={isIncrease ? "#10b981" : "#f43f5e"}

@@ -16,7 +16,8 @@ const dummyFeatured: PropertyProps[] = [
     bathrooms: 3,
     landArea: 150,
     buildingArea: 180,
-    imageUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
     isFeatured: true,
     status: "dijual",
   },
@@ -30,7 +31,8 @@ const dummyFeatured: PropertyProps[] = [
     bathrooms: 1,
     landArea: 0,
     buildingArea: 65,
-    imageUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
     isFeatured: true,
     status: "dijual",
   },
@@ -44,7 +46,8 @@ const dummyFeatured: PropertyProps[] = [
     bathrooms: 2,
     landArea: 90,
     buildingArea: 210,
-    imageUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
     isFeatured: true,
     status: "dijual",
   },
@@ -60,28 +63,30 @@ export default function FeaturedProperties({ properties }: FeaturedPropertiesPro
 
   return (
     <section className="container mx-auto px-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full uppercase tracking-wider">
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold tracking-wider text-amber-600 uppercase">
             Pilihan Utama
           </span>
-          <h2 className="text-2xl md:text-3xl font-heading font-bold text-gray-900 mt-2">
+          <h2 className="font-heading mt-2 text-2xl font-bold text-gray-900 md:text-3xl">
             Properti Unggulan
           </h2>
-          <p className="text-sm text-gray-500 mt-1">Pilihan properti eksklusif dengan nilai investasi terbaik</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Pilihan properti eksklusif dengan nilai investasi terbaik
+          </p>
         </div>
         <Link
           href="/properti"
-          className="text-amber-600 font-semibold hover:underline flex items-center gap-1 text-sm"
+          className="flex items-center gap-1 text-sm font-semibold text-amber-600 hover:underline"
         >
-          Lihat Semua Unggulan <ArrowRight className="w-4 h-4" />
+          Lihat Semua Unggulan <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
 
       {displayProperties.length === 0 ? (
         <p className="text-sm text-gray-500">Belum ada properti unggulan saat ini.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {displayProperties.map((property) => (
             <PropertyCard key={property.id} property={property} />
           ))}

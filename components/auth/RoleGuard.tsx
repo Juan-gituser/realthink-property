@@ -16,8 +16,8 @@ export function RoleGuard({ minRole, children, fallback }: RoleGuardProps) {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-6 text-slate-400 text-xs">
-        <Loader2 className="w-4 h-4 animate-spin text-emerald-400 mr-2" />
+      <div className="flex items-center justify-center p-6 text-xs text-slate-400">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin text-emerald-400" />
         Memverifikasi hak akses...
       </div>
     );
@@ -28,11 +28,17 @@ export function RoleGuard({ minRole, children, fallback }: RoleGuardProps) {
 
   // Jika level role user di bawah ketentuan minimum, tampilkan fallback atau pesan blokir
   if (!hasAccess) {
-    return fallback || (
-      <div className="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl text-center space-y-2 backdrop-blur-xl">
-        <h3 className="text-white font-bold text-xs">Akses Terbatas ({minRole.toUpperCase()} Required)</h3>
-        <p className="text-[11px] text-slate-400">Upgrade keanggotaan Anda untuk membuka fitur eksklusif ini.</p>
-      </div>
+    return (
+      fallback || (
+        <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-center backdrop-blur-xl">
+          <h3 className="text-xs font-bold text-white">
+            Akses Terbatas ({minRole.toUpperCase()} Required)
+          </h3>
+          <p className="text-[11px] text-slate-400">
+            Upgrade keanggotaan Anda untuk membuka fitur eksklusif ini.
+          </p>
+        </div>
+      )
     );
   }
 

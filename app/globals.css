@@ -3,39 +3,39 @@
 /* 1. Definisi CSS Variables Utama di :root */
 @layer base {
   :root {
-    --background: #FFFFFF;
-    --foreground: #1F2937;
+    --background: #ffffff;
+    --foreground: #1f2937;
 
-    --card: #FFFFFF;
-    --card-foreground: #1F2937;
+    --card: #ffffff;
+    --card-foreground: #1f2937;
 
-    --popover: #FFFFFF;
-    --popover-foreground: #1F2937;
+    --popover: #ffffff;
+    --popover-foreground: #1f2937;
 
     /* Brand Realthink Property */
-    --primary: #17324A;        /* Navy */
-    --primary-foreground: #FFFFFF;
+    --primary: #17324a; /* Navy */
+    --primary-foreground: #ffffff;
 
-    --secondary: #C9A55B;      /* Gold */
-    --secondary-foreground: #FFFFFF;
+    --secondary: #c9a55b; /* Gold */
+    --secondary-foreground: #ffffff;
 
-    --muted: #F3F4F6;
-    --muted-foreground: #6B7280;
+    --muted: #f3f4f6;
+    --muted-foreground: #6b7280;
 
-    --accent: #C9A55B;
-    --accent-foreground: #FFFFFF;
+    --accent: #c9a55b;
+    --accent-foreground: #ffffff;
 
-    --destructive: #EF4444;
-    --destructive-foreground: #FFFFFF;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
 
-    --border: #E5E7EB;
-    --input: #E5E7EB;
-    --ring: #17324A;
+    --border: #e5e7eb;
+    --input: #e5e7eb;
+    --ring: #17324a;
 
     /* Status Utility */
-    --success: #10B981;
-    --warning: #F59E0B;
-    --danger: #EF4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
 
     --radius: 0.5rem;
   }
@@ -90,7 +90,12 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-heading);
     letter-spacing: -0.025em;
   }

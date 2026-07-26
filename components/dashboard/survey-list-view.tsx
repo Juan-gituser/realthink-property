@@ -1,4 +1,4 @@
-"tsx"
+"tsx";
 import { Survey, SurveyStatus } from "@/types/survey";
 import { Calendar, Phone, User, Building, Edit3 } from "lucide-react";
 
@@ -23,11 +23,11 @@ export function SurveyListView({ surveys, onSelectSurvey }: SurveyListViewProps)
   };
 
   return (
-    <div className="bg-[#1C2541]/70 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-xl shadow-xl">
+    <div className="overflow-hidden rounded-3xl border border-slate-800 bg-[#1C2541]/70 shadow-xl backdrop-blur-xl">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
+        <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-slate-800 bg-slate-900/40 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+            <tr className="border-b border-slate-800 bg-slate-900/40 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
               <th className="p-4">Properti & Klien</th>
               <th className="p-4">Jadwal Survey</th>
               <th className="p-4">Marketing PIC</th>
@@ -37,39 +37,50 @@ export function SurveyListView({ surveys, onSelectSurvey }: SurveyListViewProps)
           </thead>
           <tbody className="divide-y divide-slate-800/60 text-xs">
             {surveys.map((survey) => (
-              <tr key={survey.id} className="hover:bg-slate-800/40 transition-colors">
-                <td className="p-4 space-y-1">
+              <tr key={survey.id} className="transition-colors hover:bg-slate-800/40">
+                <td className="space-y-1 p-4">
                   <div className="flex items-center gap-2 font-bold text-white">
-                    <Building className="w-4 h-4 text-amber-400 shrink-0" />
+                    <Building className="h-4 w-4 shrink-0 text-amber-400" />
                     <span>{survey.property_title}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-slate-400 text-[11px]">
-                    <span className="flex items-center gap-1"><User className="w-3 h-3" /> {survey.client_name}</span>
-                    <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-emerald-400" /> {survey.client_whatsapp}</span>
+                  <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <User className="h-3 w-3" /> {survey.client_name}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Phone className="h-3 w-3 text-emerald-400" /> {survey.client_whatsapp}
+                    </span>
                   </div>
                 </td>
                 <td className="p-4 text-slate-300">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-blue-400 shrink-0" />
-                    <span>{new Date(survey.survey_date).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</span>
+                    <Calendar className="h-4 w-4 shrink-0 text-blue-400" />
+                    <span>
+                      {new Date(survey.survey_date).toLocaleString("id-ID", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
                   </div>
                 </td>
                 <td className="p-4">
-                  <span className="font-semibold text-slate-200 bg-slate-800 px-3 py-1 rounded-xl border border-slate-700">
+                  <span className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1 font-semibold text-slate-200">
                     {survey.marketing_pic || "Belum Ditugaskan"}
                   </span>
                 </td>
                 <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusBadge(survey.status)}`}>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-[10px] font-bold tracking-wider uppercase ${getStatusBadge(survey.status)}`}
+                  >
                     {survey.status}
                   </span>
                 </td>
                 <td className="p-4 text-right">
                   <button
                     onClick={() => onSelectSurvey(survey)}
-                    className="p-2 rounded-xl bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 transition-all shadow-md inline-flex items-center gap-1.5 text-xs font-bold"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-800 p-2 text-xs font-bold text-slate-300 shadow-md transition-all hover:bg-amber-500 hover:text-slate-950"
                   >
-                    <Edit3 className="w-3.5 h-3.5" /> Kelola
+                    <Edit3 className="h-3.5 w-3.5" /> Kelola
                   </button>
                 </td>
               </tr>
@@ -77,7 +88,7 @@ export function SurveyListView({ surveys, onSelectSurvey }: SurveyListViewProps)
 
             {surveys.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-slate-500 text-xs italic">
+                <td colSpan={5} className="py-12 text-center text-xs text-slate-500 italic">
                   Belum ada jadwal survey terdaftar.
                 </td>
               </tr>

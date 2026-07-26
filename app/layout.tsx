@@ -4,12 +4,12 @@ import "./globals.css";
 import MainLayoutWrapper from "@/components/MainLayoutWrapper";
 import FloatingConsultation from "@/components/FloatingConsultation";
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
 
-const poppins = Poppins({ 
+const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-poppins",
@@ -27,10 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col bg-background antialiased" suppressHydrationWarning>
-        <MainLayoutWrapper>
-          {children}
-        </MainLayoutWrapper>
+      <body
+        className="bg-background flex min-h-screen flex-col antialiased"
+        suppressHydrationWarning
+      >
+        <MainLayoutWrapper>{children}</MainLayoutWrapper>
 
         {/* Tombol Floating Konsultasi (Otomatis hilang jika di /admin) */}
         <FloatingConsultation />

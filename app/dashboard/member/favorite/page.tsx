@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 
 export default async function FavoritePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: favorites } = await supabase
     .from("user_favorites")
@@ -21,37 +23,59 @@ export default async function FavoritePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="bg-[#1C2541] border border-slate-800 p-6 rounded-3xl flex items-center gap-4">
-        <div className="p-3 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20"><Heart className="w-6 h-6" /></div>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <div className="flex items-center gap-4 rounded-3xl border border-slate-800 bg-[#1C2541] p-6">
+        <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-rose-400">
+          <Heart className="h-6 w-6" />
+        </div>
         <div>
           <h1 className="text-xl font-bold text-white">Daftar Properti Favorit</h1>
-          <p className="text-xs text-slate-300">Simpan dan akses daftar properti impian Anda tanpa batasan kuota.</p>
+          <p className="text-xs text-slate-300">
+            Simpan dan akses daftar properti impian Anda tanpa batasan kuota.
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {favorites?.length === 0 && (
-          <p className="text-xs text-slate-400 italic col-span-3 text-py-12 text-center">Belum ada properti yang disimpan ke daftar favorit.</p>
+          <p className="text-py-12 col-span-3 text-center text-xs text-slate-400 italic">
+            Belum ada properti yang disimpan ke daftar favorit.
+          </p>
         )}
         {favorites?.map((item) => (
-          <div key={item.id} className="bg-[#1C2541]/60 border border-slate-800 rounded-3xl p-5 space-y-4 flex flex-col justify-between">
+          <div
+            key={item.id}
+            className="flex flex-col justify-between space-y-4 rounded-3xl border border-slate-800 bg-[#1C2541]/60 p-5"
+          >
             <div>
-              <div className="h-40 bg-slate-800 rounded-2xl mb-4 overflow-hidden relative">
+              <div className="relative mb-4 h-40 overflow-hidden rounded-2xl bg-slate-800">
                 {item.image_url ? (
-                  <img src={item.image_url} alt={item.property_title} className="w-full h-full object-cover" />
+                  <img
+                    src={item.image_url}
+                    alt={item.property_title}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-slate-500">No Image Preview</div>
+                  <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
+                    No Image Preview
+                  </div>
                 )}
               </div>
               <h3 className="text-sm font-bold text-white">{item.property_title}</h3>
-              <p className="text-xs text-slate-300 flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5 text-amber-400" /> {item.location}</p>
-              <p className="text-sm font-extrabold text-amber-400 mt-3">Rp {Number(item.price).toLocaleString("id-ID")}</p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-slate-300">
+                <MapPin className="h-3.5 w-3.5 text-amber-400" /> {item.location}
+              </p>
+              <p className="mt-3 text-sm font-extrabold text-amber-400">
+                Rp {Number(item.price).toLocaleString("id-ID")}
+              </p>
             </div>
             <form action={removeFavorite}>
               <input type="hidden" name="id" value={item.id} />
-              <button type="submit" className="w-full py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-rose-500/20">
-                <Trash2 className="w-3.5 h-3.5" /> Hapus dari Favorit
+              <button
+                type="submit"
+                className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 py-2 text-xs font-bold text-rose-400 transition-colors hover:bg-rose-500/20"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Hapus dari Favorit
               </button>
             </form>
           </div>

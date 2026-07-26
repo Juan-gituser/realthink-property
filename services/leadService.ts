@@ -24,10 +24,7 @@ export async function fetchLeads(): Promise<Lead[]> {
  */
 export async function updateLeadStage(id: string, newStatus: LeadStage): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase
-    .from("leads")
-    .update({ status: newStatus })
-    .eq("id", id);
+  const { error } = await supabase.from("leads").update({ status: newStatus }).eq("id", id);
 
   if (error) {
     throw new Error(`Gagal memperbarui status lead: ${error.message}`);

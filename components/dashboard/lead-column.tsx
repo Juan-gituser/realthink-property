@@ -1,4 +1,4 @@
-"tsx"
+"tsx";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Lead, LeadStage } from "@/types/lead";
@@ -13,19 +13,19 @@ export function LeadColumn({ stage, leads }: LeadColumnProps) {
   const { setNodeRef } = useDroppable({ id: stage });
 
   return (
-    <div className="bg-[#1C2541]/70 border border-slate-800 rounded-3xl p-4 flex flex-col h-175[700px] shrink-0 w-80 backdrop-blur-xl shadow-xl">
+    <div className="h-175[700px] flex w-80 shrink-0 flex-col rounded-3xl border border-slate-800 bg-[#1C2541]/70 p-4 shadow-xl backdrop-blur-xl">
       {/* Column Header */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+      <div className="mb-3 flex items-center justify-between border-b border-slate-800 pb-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-xs font-extrabold text-white uppercase tracking-wider">{stage}</h3>
-          <span className="text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">
+          <h3 className="text-xs font-extrabold tracking-wider text-white uppercase">{stage}</h3>
+          <span className="rounded-full border border-slate-700 bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-300">
             {leads.length}
           </span>
         </div>
       </div>
 
       {/* Droppable List Area */}
-      <div ref={setNodeRef} className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+      <div ref={setNodeRef} className="custom-scrollbar flex-1 space-y-3 overflow-y-auto pr-1">
         <SortableContext items={leads.map((l) => l.id)} strategy={verticalListSortingStrategy}>
           {leads.map((lead) => (
             <LeadCard key={lead.id} lead={lead} />
@@ -33,7 +33,7 @@ export function LeadColumn({ stage, leads }: LeadColumnProps) {
         </SortableContext>
 
         {leads.length === 0 && (
-          <div className="h-full flex items-center justify-center text-slate-500 text-xs italic py-12">
+          <div className="flex h-full items-center justify-center py-12 text-xs text-slate-500 italic">
             Belum ada lead
           </div>
         )}

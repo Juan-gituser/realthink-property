@@ -14,8 +14,7 @@ export const metadata: Metadata = {
     "Cari dan temukan rumah, apartemen, ruko, dan tanah impian Anda di Realthink Property. Listing terlengkap, harga transparan, dan simulasi KPR akurat.",
   openGraph: {
     title: "Realthink Property | Solusi Properti Modern & Terpercaya",
-    description:
-      "Temukan properti idaman Anda dengan fasilitas terbaik dan proses mudah.",
+    description: "Temukan properti idaman Anda dengan fasilitas terbaik dan proses mudah.",
     url: "https://realthinkproperty.com",
     siteName: "Realthink Property",
     locale: "id_ID",
@@ -31,10 +30,28 @@ export const metadata: Metadata = {
   },
 };
 
+interface PropertyRow {
+  id: string | number;
+  title: string;
+  slug: string;
+  price: number | string;
+  location: string;
+  city: string;
+  district: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  land_area?: number;
+  building_area?: number;
+  image_url?: string;
+  status: string;
+  category?: string;
+  is_featured?: boolean;
+}
+
 // Fungsi Fetch Properti Unggulan dari Supabase dengan createClient terbaru
 async function getFeaturedProperties() {
   const supabase = createClient();
-  
+
   const { data, error } = await supabase
     .from("properties")
     .select("*")
@@ -49,12 +66,12 @@ async function getFeaturedProperties() {
 
   if (!data) return [];
 
-  // Mapping data dengan casting type status yang valid ("dijual" | "disewa")
-  return data.map((item: any) => ({
+  // Mapping data dengan konversi price menjadi string
+  return (data as PropertyRow[]).map((item) => ({
     id: String(item.id),
     title: item.title,
     slug: item.slug,
-    price: item.price,
+    price: String(item.price || 0),
     location: item.location,
     city: item.city,
     district: item.district,
@@ -100,7 +117,7 @@ export default async function Home() {
       />
 
       {/* Main Landing Page Realthink Property */}
-      <div className="flex flex-col gap-16 md:gap-24 pb-16">
+      <div className="flex flex-col gap-16 pb-16 md:gap-24">
         <HeroSection />
         <PropertyCategories />
         <FeaturedProperties properties={featuredProperties} />

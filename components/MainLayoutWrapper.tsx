@@ -7,11 +7,7 @@ import ComparisonBar from "@/components/shared/ComparisonBar";
 import FloatingConsultation from "@/components/FloatingConsultation";
 import PageWrapper from "@/components/PageWrapper";
 
-export default function MainLayoutWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function MainLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   // Deteksi rute dashboard atau auth
@@ -31,9 +27,7 @@ export default function MainLayoutWrapper({
       <Navbar />
 
       {/* PageWrapper untuk mengatur padding dinamis secara otomatis */}
-      <PageWrapper>
-        {children}
-      </PageWrapper>
+      <PageWrapper>{children}</PageWrapper>
 
       {/* Bar Komparasi Properti */}
       <ComparisonBar />

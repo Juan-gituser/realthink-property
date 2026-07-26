@@ -11,7 +11,11 @@ export function useNotifications() {
   const supabase = createClient();
 
   // Fetch data awal menggunakan React Query
-  const { data: notifications = [], isLoading, error } = useQuery({
+  const {
+    data: notifications = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
     staleTime: 1000 * 60 * 2, // Cache selama 2 menit

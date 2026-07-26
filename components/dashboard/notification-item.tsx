@@ -1,14 +1,6 @@
-"tsx"
+"tsx";
 import Link from "next/link";
-import { 
-  Users, 
-  Calendar, 
-  CheckCircle2, 
-  TrendingUp, 
-  Award, 
-  ShieldAlert, 
-  Bell 
-} from "lucide-react";
+import { Users, Calendar, CheckCircle2, TrendingUp, Award, ShieldAlert, Bell } from "lucide-react";
 import { NotificationItem, NotificationType } from "@/types/notification";
 
 interface NotificationCardProps {
@@ -23,7 +15,10 @@ export function NotificationCard({ notification, onRead }: NotificationCardProps
       case "lead_new":
         return { icon: Users, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" };
       case "survey_new":
-        return { icon: Calendar, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" };
+        return {
+          icon: Calendar,
+          color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        };
       case "property_sold":
         return { icon: CheckCircle2, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" };
       case "property_price_changed":
@@ -31,7 +26,10 @@ export function NotificationCard({ notification, onRead }: NotificationCardProps
       case "membership_upgrade":
         return { icon: Award, color: "text-pink-400 bg-pink-500/10 border-pink-500/20" };
       case "admin_login":
-        return { icon: ShieldAlert, color: "text-orange-400 bg-orange-500/10 border-orange-500/20" };
+        return {
+          icon: ShieldAlert,
+          color: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+        };
       default:
         return { icon: Bell, color: "text-slate-400 bg-slate-500/10 border-slate-500/20" };
     }
@@ -40,27 +38,31 @@ export function NotificationCard({ notification, onRead }: NotificationCardProps
   const { icon: Icon, color } = getIconAndColor(notification.type);
 
   const content = (
-    <div 
+    <div
       onClick={() => !notification.is_read && onRead(notification.id)}
-      className={`p-3.5 flex items-start gap-3 transition-colors cursor-pointer border-b border-slate-800/60 last:border-0 hover:bg-slate-800/40 ${
+      className={`flex cursor-pointer items-start gap-3 border-b border-slate-800/60 p-3.5 transition-colors last:border-0 hover:bg-slate-800/40 ${
         !notification.is_read ? "bg-slate-900/60" : "bg-transparent opacity-75"
       }`}
     >
-      <div className={`p-2.5 rounded-xl border shrink-0 ${color}`}>
-        <Icon className="w-4 h-4" />
+      <div className={`shrink-0 rounded-xl border p-2.5 ${color}`}>
+        <Icon className="h-4 w-4" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="text-xs font-bold text-white truncate">{notification.title}</h4>
+          <h4 className="truncate text-xs font-bold text-white">{notification.title}</h4>
           {!notification.is_read && (
-            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+            <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500"></span>
           )}
         </div>
-        <p className="text-[11px] text-slate-300 mt-0.5 line-clamp-2 leading-relaxed">
+        <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-slate-300">
           {notification.message}
         </p>
-        <span className="text-[10px] text-slate-400 mt-1.5 block">
-          {new Date(notification.created_at).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })} - {new Date(notification.created_at).toLocaleDateString("id-ID")}
+        <span className="mt-1.5 block text-[10px] text-slate-400">
+          {new Date(notification.created_at).toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}{" "}
+          - {new Date(notification.created_at).toLocaleDateString("id-ID")}
         </span>
       </div>
     </div>

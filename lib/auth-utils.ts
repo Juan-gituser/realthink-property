@@ -1,7 +1,8 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { hasPermission, Permission, Role } from './permissions';
-import { redirect } from 'next/navigation';
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import type { User } from "@supabase/supabase-js";
+import { hasPermission, Permission, Role } from "./permissions";
+import { redirect } from "next/navigation";
 
 // Inisialisasi Supabase Server Client secara mandiri
 async function createSupabaseServerClient() {
@@ -29,26 +30,28 @@ async function createSupabaseServerClient() {
   );
 }
 
-// Mengambil role user yang sedang aktif
-async function getCurrentUserRole(): Promise<{ user: any; role: Role }> {
+// Mengambil role user yang sedang aktif (menggunakan tipe data User, bebas dari 'any')
+async function getCurrentUserRole(): Promise<{ user: User | null; role: Role }> {
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    return { user: null, role: 'guest' };
+    return { user: null, role: "guest" };
   }
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
     .single();
 
-  return { user, role: (profile?.role as Role) || 'member' };
+  return { user, role: (profile?.role as Role) || "member" };
 }
 
 // Fungsi proteksi halaman (otomatis redirect jika tidak punya izin)
-export async function requirePermission(permission: Permission, redirectTo = '/upgrade') {
+export async function requirePermission(permission: Permission, redirectTo = "/upgrade") {
   const { user, role } = await getCurrentUserRole();
 
   if (!hasPermission(role, permission)) {

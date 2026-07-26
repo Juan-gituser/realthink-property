@@ -16,11 +16,11 @@ interface ActivityTimelineProps {
 export function ActivityTimeline({ activities, isLoading = false }: ActivityTimelineProps) {
   if (isLoading) {
     return (
-      <div className="bg-[#1C2541]/70 border border-slate-800 p-6 rounded-3xl space-y-4 animate-pulse">
-        <div className="w-36 h-5 bg-slate-800 rounded" />
+      <div className="animate-pulse space-y-4 rounded-3xl border border-slate-800 bg-[#1C2541]/70 p-6">
+        <div className="h-5 w-36 rounded bg-slate-800" />
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-12 bg-slate-800/50 rounded-xl" />
+            <div key={i} className="h-12 rounded-xl bg-slate-800/50" />
           ))}
         </div>
       </div>
@@ -31,47 +31,52 @@ export function ActivityTimeline({ activities, isLoading = false }: ActivityTime
     switch (type) {
       case "property_added":
       case "property_updated":
-        return <Building2 className="w-4 h-4 text-amber-400" />;
+        return <Building2 className="h-4 w-4 text-amber-400" />;
       case "lead_new":
-        return <Users className="w-4 h-4 text-blue-400" />;
+        return <Users className="h-4 w-4 text-blue-400" />;
       case "survey_new":
-        return <Calendar className="w-4 h-4 text-emerald-400" />;
+        return <Calendar className="h-4 w-4 text-emerald-400" />;
       case "article_published":
-        return <FileText className="w-4 h-4 text-purple-400" />;
+        return <FileText className="h-4 w-4 text-purple-400" />;
       default:
-        return <Activity className="w-4 h-4 text-slate-400" />;
+        return <Activity className="h-4 w-4 text-slate-400" />;
     }
   };
 
   return (
-    <div className="bg-[#1C2541]/70 border border-slate-800 p-6 rounded-3xl backdrop-blur-xl shadow-xl flex flex-col h-full">
-      <div className="flex items-center justify-between mb-6">
+    <div className="flex h-full flex-col rounded-3xl border border-slate-800 bg-[#1C2541]/70 p-6 shadow-xl backdrop-blur-xl">
+      <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-amber-500/10 rounded-xl text-amber-400 border border-amber-500/20">
-            <Activity className="w-4 h-4" />
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2 text-amber-400">
+            <Activity className="h-4 w-4" />
           </div>
-          <h3 className="text-base font-bold text-white font-heading">Activity Timeline</h3>
+          <h3 className="font-heading text-base font-bold text-white">Activity Timeline</h3>
         </div>
-        <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+        <span className="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-1 text-[10px] font-semibold text-slate-300">
           Live Log
         </span>
       </div>
 
-      <div className="space-y-4 overflow-y-auto max-h-87.5[350px] pr-1">
+      <div className="max-h-87.5[350px] space-y-4 overflow-y-auto pr-1">
         {activities.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-8 italic">Belum ada aktivitas terekam.</p>
+          <p className="py-8 text-center text-xs text-slate-400 italic">
+            Belum ada aktivitas terekam.
+          </p>
         ) : (
           activities.map((item, index) => (
-            <div key={item.id || index} className="flex items-start gap-3.5 pb-4 border-b border-slate-800/60 last:border-0 last:pb-0">
-              <div className="p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800 shrink-0 mt-0.5">
+            <div
+              key={item.id || index}
+              className="flex items-start gap-3.5 border-b border-slate-800/60 pb-4 last:border-0 last:pb-0"
+            >
+              <div className="mt-0.5 shrink-0 rounded-2xl border border-slate-800 bg-slate-900/80 p-2.5">
                 {getIcon(item.type)}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
-                  <span className="text-[10px] text-slate-400 shrink-0 ml-2">{item.timestamp}</span>
+                  <h4 className="truncate text-xs font-bold text-white">{item.title}</h4>
+                  <span className="ml-2 shrink-0 text-[10px] text-slate-400">{item.timestamp}</span>
                 </div>
-                <p className="text-[11px] text-slate-300 mt-0.5 truncate">{item.description}</p>
+                <p className="mt-0.5 truncate text-[11px] text-slate-300">{item.description}</p>
               </div>
             </div>
           ))

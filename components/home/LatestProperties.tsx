@@ -44,23 +44,23 @@ export default function LatestProperties() {
         }
 
         if (data) {
-          // Mapping data snake_case Supabase ke camelCase komponen
-          const mappedProperties: Property[] = data.map((item: any) => ({
+          // Mengganti tipe any dengan Record<string, unknown> untuk mematuhi aturan ESLint
+          const mappedProperties: Property[] = data.map((item: Record<string, unknown>) => ({
             id: String(item.id),
-            title: item.title,
-            slug: item.slug,
-            price: item.price,
-            location: item.location,
-            city: item.city,
-            district: item.district,
-            bedrooms: item.bedrooms || 0,
-            bathrooms: item.bathrooms || 0,
-            landArea: item.land_area || 0,
-            buildingArea: item.building_area || 0,
-            imageUrl: item.image_url || "/placeholder-property.jpg",
+            title: item.title as string,
+            slug: item.slug as string,
+            price: item.price as string,
+            location: item.location as string,
+            city: item.city as string | undefined,
+            district: item.district as string | undefined,
+            bedrooms: (item.bedrooms as number) || 0,
+            bathrooms: (item.bathrooms as number) || 0,
+            landArea: (item.land_area as number) || 0,
+            buildingArea: (item.building_area as number) || 0,
+            imageUrl: (item.image_url as string) || "/placeholder-property.jpg",
             status: item.status === "disewa" ? "disewa" : "dijual",
-            category: item.category || "Properti",
-            isFeatured: item.is_featured || false,
+            category: (item.category as string) || "Properti",
+            isFeatured: (item.is_featured as boolean) || false,
           }));
 
           setProperties(mappedProperties);
@@ -78,18 +78,18 @@ export default function LatestProperties() {
   return (
     <section className="container mx-auto px-4 py-12">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+      <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <span className="text-secondary font-semibold text-sm uppercase tracking-wider">
+          <span className="text-secondary text-sm font-semibold tracking-wider uppercase">
             Listing Terbaru
           </span>
-          <h2 className="text-2xl md:text-3xl font-heading font-bold text-primary mt-1">
+          <h2 className="font-heading text-primary mt-1 text-2xl font-bold md:text-3xl">
             Properti Terbaik dari Realthink
           </h2>
         </div>
         <Link
           href="/properti"
-          className="text-primary hover:text-secondary font-semibold text-sm transition-colors flex items-center gap-1"
+          className="text-primary hover:text-secondary flex items-center gap-1 text-sm font-semibold transition-colors"
         >
           Lihat Semua Properti &rarr;
         </Link>
@@ -97,18 +97,18 @@ export default function LatestProperties() {
 
       {/* State Loading */}
       {loading && (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400 space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-secondary" />
+        <div className="flex flex-col items-center justify-center space-y-3 py-16 text-gray-400">
+          <Loader2 className="text-secondary h-8 w-8 animate-spin" />
           <p className="text-sm">Memuat data properti terbaru...</p>
         </div>
       )}
 
       {/* State Kosong (Belum ada data di database) */}
       {!loading && properties.length === 0 && (
-        <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-          <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 py-16 text-center">
+          <Building2 className="mx-auto mb-3 h-12 w-12 text-gray-300" />
           <h3 className="text-base font-semibold text-gray-700">Belum Ada Properti</h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="mt-1 text-sm text-gray-500">
             Tambahkan listing pertama Anda melalui halaman Admin.
           </p>
         </div>
@@ -116,7 +116,7 @@ export default function LatestProperties() {
 
       {/* Grid Properti Live */}
       {!loading && properties.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {properties.map((property) => (
             <PropertyCard key={property.id} property={property} />
           ))}

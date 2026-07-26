@@ -12,16 +12,13 @@ export default function AdminFloatingBar() {
   const pathname = usePathname();
   const supabase = createClient();
 
-  // Jangan tampilkan jika sedang berada di dalam area admin
-  if (pathname?.startsWith("/admin")) {
-    return null;
-  }
-
   useEffect(() => {
     async function checkAdminRole() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (!user) {
           setIsAdmin(false);
           setLoading(false);
@@ -59,20 +56,22 @@ export default function AdminFloatingBar() {
     checkAdminRole();
   }, [supabase]);
 
-  // Jangan tampilkan jika masih loading atau bukan admin
-  if (loading || !isAdmin) return null;
+  // Jangan tampilkan jika sedang berada di area admin, masih loading, atau bukan admin
+  if (pathname?.startsWith("/admin") || loading || !isAdmin) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-4 left-4 z-40">
       <Link
         href="/admin"
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900/90 backdrop-blur-md text-white shadow-lg border border-amber-500/40 hover:bg-slate-900 hover:border-amber-400 transition-all duration-200 group text-[11px] font-medium cursor-pointer"
+        className="group flex cursor-pointer items-center gap-1.5 rounded-xl border border-amber-500/40 bg-slate-900/90 px-3 py-2 text-[11px] font-medium text-white shadow-lg backdrop-blur-md transition-all duration-200 hover:border-amber-400 hover:bg-slate-900"
       >
-        <div className="p-1 rounded-lg bg-amber-500 text-slate-950 font-bold shadow-xs">
-          <Shield className="w-3 h-3" />
+        <div className="rounded-lg bg-amber-500 p-1 font-bold text-slate-950 shadow-xs">
+          <Shield className="h-3 w-3" />
         </div>
         <span>Panel Admin</span>
-        <ArrowRight className="w-3 h-3 text-amber-400 transition-transform duration-200 group-hover:translate-x-0.5" />
+        <ArrowRight className="h-3 w-3 text-amber-400 transition-transform duration-200 group-hover:translate-x-0.5" />
       </Link>
     </div>
   );

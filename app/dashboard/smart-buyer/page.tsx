@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  Compass, 
-  Activity, 
-  Target, 
-  Calculator, 
-  FileSearch, 
-  Bell, 
-  Scale, 
-  Sparkles, 
+import {
+  Compass,
+  Activity,
+  Target,
+  Calculator,
+  FileSearch,
+  Bell,
+  Scale,
+  Sparkles,
   MessageSquareCheck,
   ArrowRight,
   ShieldCheck,
-  Crown
+  Crown,
 } from "lucide-react";
 
 const SMART_BUYER_FEATURES = [
@@ -84,34 +84,37 @@ const SMART_BUYER_FEATURES = [
 
 export default function SmartBuyerDashboardPage() {
   return (
-    <div className="space-y-8 pb-12 max-w-7xl mx-auto">
-      
+    <div className="mx-auto max-w-7xl space-y-8 pb-12">
       {/* Banner / Hero Section Eksklusif (Diperbaiki agar konsisten gelap & elegan) */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-950 border border-secondary/40 p-8 sm:p-10 shadow-2xl shadow-black/50">
+      <div className="border-secondary/40 relative overflow-hidden rounded-3xl border bg-slate-950 p-8 shadow-2xl shadow-black/50 sm:p-10">
         {/* Efek cahaya ambient */}
-        <div className="absolute -right-12 -top-12 w-72 h-72 bg-secondary/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 -bottom-10 w-64 h-64 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-secondary/20 border border-secondary/40 text-secondary text-xs font-bold tracking-wider uppercase backdrop-blur-md">
-              <Crown className="w-3.5 h-3.5" /> Realthink Elite Membership Active
+        <div className="bg-secondary/15 pointer-events-none absolute -top-12 -right-12 h-72 w-72 rounded-full blur-3xl" />
+        <div className="bg-primary/20 pointer-events-none absolute -bottom-10 left-1/3 h-64 w-64 rounded-full blur-3xl" />
+
+        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
+          <div className="max-w-2xl space-y-3">
+            <div className="bg-secondary/20 border-secondary/40 text-secondary inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold tracking-wider uppercase backdrop-blur-md">
+              <Crown className="h-3.5 w-3.5" /> Realthink Elite Membership Active
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold font-heading text-white tracking-tight">
+            <h1 className="font-heading text-2xl font-extrabold tracking-tight text-white sm:text-4xl">
               Smart Buyer Command Center
             </h1>
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-              Anda memiliki akses penuh ke seluruh ekosistem alat analisis properti mendalam, proteksi pembelian bebas risiko, audit legalitas, dan estimasi biaya tersembunyi tingkat lanjut.
+            <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
+              Anda memiliki akses penuh ke seluruh ekosistem alat analisis properti mendalam,
+              proteksi pembelian bebas risiko, audit legalitas, dan estimasi biaya tersembunyi
+              tingkat lanjut.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
-            <div className="px-5 py-3.5 rounded-2xl bg-slate-900/80 backdrop-blur-md border border-secondary/30 flex items-center gap-3.5 shadow-xl">
-              <div className="p-2.5 bg-secondary/20 rounded-xl text-secondary border border-secondary/20">
-                <ShieldCheck className="w-5 h-5" />
+          <div className="flex shrink-0 flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <div className="border-secondary/30 flex items-center gap-3.5 rounded-2xl border bg-slate-900/80 px-5 py-3.5 shadow-xl backdrop-blur-md">
+              <div className="bg-secondary/20 text-secondary border-secondary/20 rounded-xl border p-2.5">
+                <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status Proteksi</p>
+                <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                  Status Proteksi
+                </p>
                 <p className="text-xs font-bold text-white">Full Verified & Secure</p>
               </div>
             </div>
@@ -120,65 +123,62 @@ export default function SmartBuyerDashboardPage() {
       </div>
 
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+      <div className="border-border/60 flex flex-col justify-between gap-4 border-b pb-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold font-heading text-foreground flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-secondary" /> Direktori Fitur Eksklusif Smart Buyer
+          <h2 className="font-heading text-foreground flex items-center gap-2 text-lg font-bold sm:text-xl">
+            <Sparkles className="text-secondary h-5 w-5" /> Direktori Fitur Eksklusif Smart Buyer
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-muted-foreground mt-0.5 text-xs">
             Pilih modul analitik di bawah untuk mulai mengoptimalkan keputusan properti Anda.
           </p>
         </div>
-        <span className="text-xs font-semibold px-3.5 py-1.5 bg-secondary/10 text-secondary rounded-full border border-secondary/20 w-fit">
+        <span className="bg-secondary/10 text-secondary border-secondary/20 w-fit rounded-full border px-3.5 py-1.5 text-xs font-semibold">
           9 Modul Aktif
         </span>
       </div>
 
       {/* Grid Kartu Fitur Eksklusif */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {SMART_BUYER_FEATURES.map((item, index) => {
           const Icon = item.icon;
           return (
             <Link
               key={index}
               href={item.href}
-              className="group relative bg-card hover:bg-card/90 border border-border/80 hover:border-secondary/60 rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-secondary/10 hover:-translate-y-1 flex flex-col justify-between overflow-hidden cursor-pointer"
+              className="group bg-card hover:bg-card/90 border-border/80 hover:border-secondary/60 hover:shadow-secondary/10 relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-3xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
             >
-              <div className="absolute inset-0 bg-linear-to-br from-secondary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+              <div className="from-secondary/5 pointer-events-none absolute inset-0 bg-linear-to-br via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
-              <div className="space-y-4 relative z-10">
+              <div className="relative z-10 space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-secondary/10 border border-secondary/20 text-secondary flex items-center justify-center group-hover:scale-110 group-hover:bg-secondary group-hover:text-primary transition-all duration-300 shadow-sm">
-                    <Icon className="w-6 h-6" />
+                  <div className="bg-secondary/10 border-secondary/20 text-secondary group-hover:bg-secondary group-hover:text-primary flex h-12 w-12 items-center justify-center rounded-2xl border shadow-sm transition-all duration-300 group-hover:scale-110">
+                    <Icon className="h-6 w-6" />
                   </div>
-                  <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-muted text-muted-foreground group-hover:bg-secondary/20 group-hover:text-secondary transition-colors border border-border/40">
+                  <span className="bg-muted text-muted-foreground group-hover:bg-secondary/20 group-hover:text-secondary border-border/40 rounded-full border px-2.5 py-1 text-[10px] font-bold tracking-wider uppercase transition-colors">
                     {item.badge}
                   </span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <h3 className="text-base font-bold text-foreground group-hover:text-secondary transition-colors font-heading flex items-center justify-between">
+                  <h3 className="text-foreground group-hover:text-secondary font-heading flex items-center justify-between text-base font-bold transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                  <p className="text-muted-foreground line-clamp-2 text-xs leading-relaxed">
                     {item.description}
                   </p>
                 </div>
               </div>
 
-              <div className="pt-6 mt-6 border-t border-border/40 flex items-center justify-between relative z-10">
-                <span className="text-xs font-bold text-secondary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  Buka Fitur <ArrowRight className="w-3.5 h-3.5" />
+              <div className="border-border/40 relative z-10 mt-6 flex items-center justify-between border-t pt-6">
+                <span className="text-secondary flex items-center gap-1 text-xs font-bold transition-transform group-hover:translate-x-1">
+                  Buka Fitur <ArrowRight className="h-3.5 w-3.5" />
                 </span>
-                <span className="text-[10px] text-muted-foreground/60 font-medium">
-                  Akses VIP
-                </span>
+                <span className="text-muted-foreground/60 text-[10px] font-medium">Akses VIP</span>
               </div>
             </Link>
           );
         })}
       </div>
-
     </div>
   );
 }

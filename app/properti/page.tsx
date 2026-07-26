@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import PropertyCard from "@/components/shared/PropertyCard";
-import { Search, Loader2, Building2, SlidersHorizontal } from "lucide-react";
+import { Search, Loader2, Building2 } from "lucide-react";
 
 interface Property {
   id: string;
@@ -21,6 +21,25 @@ interface Property {
   status: "dijual" | "disewa";
   category: string;
   isFeatured?: boolean;
+}
+
+// Interface untuk baris data mentah dari database Supabase
+interface PropertyRow {
+  id: string | number;
+  title: string;
+  slug: string;
+  price: string;
+  location: string;
+  city?: string;
+  district?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  land_area?: number;
+  building_area?: number;
+  image_url?: string;
+  status?: string;
+  category?: string;
+  is_featured?: boolean;
 }
 
 export default function PropertiesPage() {
@@ -44,7 +63,7 @@ export default function PropertiesPage() {
         if (error) throw error;
 
         if (data) {
-          const mapped: Property[] = data.map((item: any) => ({
+          const mapped: Property[] = (data as PropertyRow[]).map((item) => ({
             id: String(item.id),
             title: item.title,
             slug: item.slug,
@@ -88,29 +107,28 @@ export default function PropertiesPage() {
   }, [properties, search, category, status]);
 
   return (
-    <div className="bg-gray-50 min-h-screen py-10">
-      <div className="container mx-auto px-4 space-y-8">
-        
+    <div className="min-h-screen bg-gray-50 py-10">
+      <div className="container mx-auto space-y-8 px-4">
         {/* Header */}
         <div className="max-w-2xl">
-          <h1 className="text-3xl font-heading font-bold text-gray-900">
+          <h1 className="font-heading text-3xl font-bold text-gray-900">
             Katalog Properti Pilihan
           </h1>
-          <p className="text-gray-600 text-sm mt-2">
+          <p className="mt-2 text-sm text-gray-600">
             Temukan rumah, apartemen, ruko, dan tanah impian Anda dengan harga dan lokasi terbaik.
           </p>
         </div>
 
         {/* Filter Bar */}
-        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-4">
           <div className="relative md:col-span-2">
-            <Search className="w-4 h-4 absolute left-3 top-3.5 text-gray-400" />
+            <Search className="absolute top-3.5 left-3 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="Cari judul atau lokasi properti..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 border rounded-xl text-sm outline-none focus:ring-1 focus:ring-amber-500"
+              className="w-full rounded-xl border py-2.5 pr-3 pl-9 text-sm outline-none focus:ring-1 focus:ring-amber-500"
             />
           </div>
 
@@ -118,7 +136,7 @@ export default function PropertiesPage() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full py-2.5 px-3 border rounded-xl text-sm bg-white outline-none focus:ring-1 focus:ring-amber-500"
+              className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-amber-500"
             >
               <option value="Semua">Semua Tipe</option>
               <option value="Rumah">Rumah</option>
@@ -133,7 +151,7 @@ export default function PropertiesPage() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full py-2.5 px-3 border rounded-xl text-sm bg-white outline-none focus:ring-1 focus:ring-amber-500"
+              className="w-full rounded-xl border bg-white px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-amber-500"
             >
               <option value="Semua">Semua Status</option>
               <option value="dijual">Dijual</option>
@@ -144,20 +162,18 @@ export default function PropertiesPage() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400 space-y-3">
-            <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+          <div className="flex flex-col items-center justify-center space-y-3 py-20 text-gray-400">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
             <p className="text-sm">Memuat daftar properti...</p>
           </div>
         )}
 
         {/* Kosong */}
         {!loading && filteredProperties.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-200">
-            <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-gray-800">
-              Tidak ada properti ditemukan
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white py-20 text-center">
+            <Building2 className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+            <h3 className="text-lg font-semibold text-gray-800">Tidak ada properti ditemukan</h3>
+            <p className="mt-1 text-sm text-gray-500">
               Coba sesuaikan kata kunci atau filter pencarian Anda.
             </p>
           </div>
@@ -165,13 +181,12 @@ export default function PropertiesPage() {
 
         {/* Grid List Properti */}
         {!loading && filteredProperties.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredProperties.map((property) => (
               <PropertyCard key={property.id} property={property} />
             ))}
           </div>
         )}
-
       </div>
     </div>
   );

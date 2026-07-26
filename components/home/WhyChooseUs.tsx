@@ -29,23 +29,26 @@ export default function WhyChooseUs() {
   return (
     <section className="bg-primary/5 py-16">
       <div className="container mx-auto px-4">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl font-bold text-primary">Mengapa Realthink Property?</h2>
+        <div className="mx-auto mb-12 max-w-2xl text-center">
+          <h2 className="text-primary text-3xl font-bold">Mengapa Realthink Property?</h2>
           <p className="text-muted-foreground mt-2">
             Kami berkomitmen memberikan standar pelayanan terbaik dalam bertransaksi properti.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {features.map((item, index) => {
             const Icon = item.icon;
             return (
-              <div key={index} className="bg-white p-6 rounded-xl border border-border text-center space-y-3">
-                <div className="w-12 h-12 mx-auto rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
-                  <Icon className="w-6 h-6" />
+              <div
+                key={index}
+                className="border-border space-y-3 rounded-xl border bg-white p-6 text-center"
+              >
+                <div className="bg-secondary/10 text-secondary mx-auto flex h-12 w-12 items-center justify-center rounded-lg">
+                  <Icon className="h-6 w-6" />
                 </div>
-                <h3 className="font-semibold text-lg text-primary">{item.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+                <h3 className="text-primary text-lg font-semibold">{item.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
               </div>
             );
           })}

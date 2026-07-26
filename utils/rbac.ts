@@ -21,7 +21,7 @@ export async function checkUserPermission(userId: string, targetPath: string): P
     .select("path_prefix, required_role");
 
   // Cari aturan rute yang paling cocok dengan path saat ini
-  const matchedRule = routeRules?.find(rule => targetPath.startsWith(rule.path_prefix));
+  const matchedRule = routeRules?.find((rule) => targetPath.startsWith(rule.path_prefix));
 
   if (!matchedRule) return true; // Jika rute tidak diproteksi, izinkan
 
@@ -29,7 +29,10 @@ export async function checkUserPermission(userId: string, targetPath: string): P
   if (matchedRule.required_role === userRole) return true;
 
   // Admin dapat mengakses rute smart_buyer dan investor_pro
-  if (userRole === "admin" && ["member", "smart_buyer", "investor_pro"].includes(matchedRule.required_role)) {
+  if (
+    userRole === "admin" &&
+    ["member", "smart_buyer", "investor_pro"].includes(matchedRule.required_role)
+  ) {
     return true;
   }
 

@@ -1,6 +1,6 @@
-import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
-import { UserRole, roleHierarchy } from '@/types/auth';
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+import { UserRole, roleHierarchy } from "@/types/auth";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -25,28 +25,30 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Memastikan sesi auth valid
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const url = request.nextUrl.clone();
 
   // Proteksi rute Admin & Super Admin
-  if (url.pathname.startsWith('/dashboard/admin')) {
+  if (url.pathname.startsWith("/dashboard/admin")) {
     if (!user) {
-      url.pathname = '/login';
+      url.pathname = "/login";
       return NextResponse.redirect(url);
     }
 
     // Ambil data profil dari database untuk memeriksa role terkini
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
       .single();
 
-    const userRole = (profile?.role as UserRole) || 'guest';
+    const userRole = (profile?.role as UserRole) || "guest";
 
     // Validasi RBAC: minimal role harus 'admin'
-    if (roleHierarchy[userRole] < roleHierarchy['admin']) {
-      url.pathname = '/dashboard';
+    if (roleHierarchy[userRole] < roleHierarchy["admin"]) {
+      url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
   }

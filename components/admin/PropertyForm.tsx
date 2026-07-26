@@ -3,15 +3,12 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  propertySchema, 
-  PropertyFormInput, 
-  PropertyFormValues 
-} from "@/lib/validations/admin";
+import { propertySchema, PropertyFormInput, PropertyFormValues } from "@/lib/validations/admin";
 import { uploadMultipleImages } from "@/lib/supabase/storage";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, ImagePlus, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function PropertyForm() {
   const [uploading, setUploading] = useState(false);
@@ -25,9 +22,8 @@ export default function PropertyForm() {
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
-  } = useForm<PropertyFormInput, any, PropertyFormValues>({
+  } = useForm<PropertyFormInput, undefined, PropertyFormValues>({
     resolver: zodResolver(propertySchema),
     defaultValues: {
       title: "",
@@ -125,25 +121,33 @@ export default function PropertyForm() {
       alert("Properti berhasil disimpan!");
       router.push("/admin/properties");
       router.refresh();
-    } catch (err: any) {
-      alert("Gagal menyimpan properti: " + err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      alert("Gagal menyimpan properti: " + errorMessage);
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-5xl bg-white p-8 rounded-xl border border-border shadow-sm">
-      <div className="border-b border-border pb-4">
-        <h2 className="text-2xl font-bold text-primary">Tambah Properti Baru</h2>
-        <p className="text-sm text-muted-foreground mt-1">Lengkapi informasi properti secara detail untuk publikasi.</p>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="border-border max-w-5xl space-y-8 rounded-xl border bg-white p-8 shadow-sm"
+    >
+      <div className="border-border border-b pb-4">
+        <h2 className="text-primary text-2xl font-bold">Tambah Properti Baru</h2>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Lengkapi informasi properti secara detail untuk publikasi.
+        </p>
       </div>
 
       {/* Informasi Utama */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-primary border-l-4 border-secondary pl-3">1. Informasi Utama</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <h3 className="text-primary border-secondary border-l-4 pl-3 text-lg font-semibold">
+          1. Informasi Utama
+        </h3>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="text-xs font-semibold text-gray-700 uppercase">Judul Properti</label>
             <input
@@ -151,9 +155,9 @@ export default function PropertyForm() {
               {...register("title")}
               onChange={handleTitleChange}
               placeholder="Contoh: Rumah Minimalis Modern BSD"
-              className="w-full mt-1 p-2.5 border rounded-lg text-sm focus:ring-1 focus:ring-secondary outline-none"
+              className="focus:ring-secondary mt-1 w-full rounded-lg border p-2.5 text-sm outline-none focus:ring-1"
             />
-            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+            {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title.message}</p>}
           </div>
 
           <div>
@@ -161,36 +165,44 @@ export default function PropertyForm() {
             <input
               type="text"
               {...register("slug")}
-              className="w-full mt-1 p-2.5 border rounded-lg text-sm bg-gray-50 outline-none"
+              className="mt-1 w-full rounded-lg border bg-gray-50 p-2.5 text-sm outline-none"
               readOnly
             />
-            {errors.slug && <p className="text-red-500 text-xs mt-1">{errors.slug.message}</p>}
+            {errors.slug && <p className="mt-1 text-xs text-red-500">{errors.slug.message}</p>}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <label className="text-xs font-semibold text-gray-700 uppercase">Harga (Rp)</label>
             <input
               type="number"
               {...register("price")}
               placeholder="1500000000"
-              className="w-full mt-1 p-2.5 border rounded-lg text-sm outline-none"
+              className="mt-1 w-full rounded-lg border p-2.5 text-sm outline-none"
             />
-            {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price.message}</p>}
+            {errors.price && <p className="mt-1 text-xs text-red-500">{errors.price.message}</p>}
           </div>
 
           <div>
             <label className="text-xs font-semibold text-gray-700 uppercase">Status Listing</label>
-            <select {...register("status")} className="w-full mt-1 p-2.5 border rounded-lg text-sm bg-white outline-none">
+            <select
+              {...register("status")}
+              className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm outline-none"
+            >
               <option value="dijual">Dijual</option>
               <option value="disewa">Disewa</option>
             </select>
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-700 uppercase">Status Publikasi</label>
-            <select {...register("listingStatus")} className="w-full mt-1 p-2.5 border rounded-lg text-sm bg-white outline-none">
+            <label className="text-xs font-semibold text-gray-700 uppercase">
+              Status Publikasi
+            </label>
+            <select
+              {...register("listingStatus")}
+              className="mt-1 w-full rounded-lg border bg-white p-2.5 text-sm outline-none"
+            >
               <option value="published">Published</option>
               <option value="draft">Draft</option>
               <option value="sold">Terjual (Sold)</option>
@@ -200,55 +212,84 @@ export default function PropertyForm() {
       </div>
 
       {/* Spesifikasi Properti */}
-      <div className="space-y-4 pt-4 border-t border-border">
-        <h3 className="text-lg font-semibold text-primary border-l-4 border-secondary pl-3">2. Spesifikasi Bangunan</h3>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="border-border space-y-4 border-t pt-4">
+        <h3 className="text-primary border-secondary border-l-4 pl-3 text-lg font-semibold">
+          2. Spesifikasi Bangunan
+        </h3>
+
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <label className="text-xs font-semibold text-gray-700 uppercase">Luas Tanah (m²)</label>
-            <input type="number" {...register("landArea")} className="w-full mt-1 p-2.5 border rounded-lg text-sm" />
-            {errors.landArea && <p className="text-red-500 text-xs mt-1">{errors.landArea.message}</p>}
+            <input
+              type="number"
+              {...register("landArea")}
+              className="mt-1 w-full rounded-lg border p-2.5 text-sm"
+            />
+            {errors.landArea && (
+              <p className="mt-1 text-xs text-red-500">{errors.landArea.message}</p>
+            )}
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-700 uppercase">Luas Bangunan (m²)</label>
-            <input type="number" {...register("buildingArea")} className="w-full mt-1 p-2.5 border rounded-lg text-sm" />
+            <label className="text-xs font-semibold text-gray-700 uppercase">
+              Luas Bangunan (m²)
+            </label>
+            <input
+              type="number"
+              {...register("buildingArea")}
+              className="mt-1 w-full rounded-lg border p-2.5 text-sm"
+            />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-700 uppercase">Kamar Tidur</label>
-            <input type="number" {...register("bedrooms")} className="w-full mt-1 p-2.5 border rounded-lg text-sm" />
+            <input
+              type="number"
+              {...register("bedrooms")}
+              className="mt-1 w-full rounded-lg border p-2.5 text-sm"
+            />
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-700 uppercase">Kamar Mandi</label>
-            <input type="number" {...register("bathrooms")} className="w-full mt-1 p-2.5 border rounded-lg text-sm" />
+            <input
+              type="number"
+              {...register("bathrooms")}
+              className="mt-1 w-full rounded-lg border p-2.5 text-sm"
+            />
           </div>
         </div>
       </div>
 
       {/* Upload Gambar Banyak */}
-      <div className="space-y-4 pt-4 border-t border-border">
-        <h3 className="text-lg font-semibold text-primary border-l-4 border-secondary pl-3">3. Galeri Foto</h3>
-        
-        <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:bg-gray-50 transition cursor-pointer relative">
+      <div className="border-border space-y-4 border-t pt-4">
+        <h3 className="text-primary border-secondary border-l-4 pl-3 text-lg font-semibold">
+          3. Galeri Foto
+        </h3>
+
+        <div className="border-border relative cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition hover:bg-gray-50">
           <input
             type="file"
             multiple
             accept="image/*"
             onChange={handleFileChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
-          <ImagePlus className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+          <ImagePlus className="text-muted-foreground mx-auto mb-2 h-10 w-10" />
           <p className="text-sm font-medium text-gray-700">Klik atau seret foto properti ke sini</p>
-          <p className="text-xs text-muted-foreground mt-1">Bisa pilih beberapa gambar sekaligus (JPG, PNG, WEBP)</p>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Bisa pilih beberapa gambar sekaligus (JPG, PNG, WEBP)
+          </p>
         </div>
 
         {/* Image Previews */}
         {previewUrls.length > 0 && (
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mt-4">
+          <div className="mt-4 grid grid-cols-3 gap-3 md:grid-cols-6">
             {previewUrls.map((url, idx) => (
-              <div key={idx} className="relative h-24 rounded-lg overflow-hidden border border-border group">
-                <img src={url} alt="preview" className="w-full h-full object-cover" />
+              <div
+                key={idx}
+                className="border-border group relative h-24 overflow-hidden rounded-lg border"
+              >
+                <Image src={url} alt="preview" fill className="object-cover" />
                 {idx === 0 && (
-                  <span className="absolute bottom-1 left-1 bg-secondary text-primary text-[10px] font-bold px-1.5 py-0.5 rounded">
+                  <span className="bg-secondary text-primary absolute bottom-1 left-1 z-10 rounded px-1.5 py-0.5 text-[10px] font-bold">
                     Thumbnail
                   </span>
                 )}
@@ -259,32 +300,32 @@ export default function PropertyForm() {
       </div>
 
       {/* Checkbox Featured */}
-      <div className="flex items-center gap-3 pt-4 border-t border-border">
+      <div className="border-border flex items-center gap-3 border-t pt-4">
         <input
           type="checkbox"
           id="featured"
           {...register("isFeatured")}
-          className="w-5 h-5 accent-primary rounded cursor-pointer"
+          className="accent-primary h-5 w-5 cursor-pointer rounded"
         />
-        <label htmlFor="featured" className="text-sm font-semibold text-gray-800 cursor-pointer">
+        <label htmlFor="featured" className="cursor-pointer text-sm font-semibold text-gray-800">
           Jadikan Properti Unggulan (Featured)
         </label>
       </div>
 
       {/* Submit Button */}
-      <div className="pt-6 border-t border-border flex justify-end">
+      <div className="border-border flex justify-end border-t pt-6">
         <button
           type="submit"
           disabled={isSubmitting || uploading}
-          className="bg-primary text-white px-8 py-3 rounded-lg font-semibold hover:bg-primary/90 transition flex items-center gap-2 shadow-md disabled:opacity-50"
+          className="bg-primary hover:bg-primary/90 flex items-center gap-2 rounded-lg px-8 py-3 font-semibold text-white shadow-md transition disabled:opacity-50"
         >
-          {(isSubmitting || uploading) ? (
+          {isSubmitting || uploading ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin text-secondary" /> Menyimpan...
+              <Loader2 className="text-secondary h-5 w-5 animate-spin" /> Menyimpan...
             </>
           ) : (
             <>
-              <CheckCircle2 className="w-5 h-5 text-secondary" /> Simpan Properti
+              <CheckCircle2 className="text-secondary h-5 w-5" /> Simpan Properti
             </>
           )}
         </button>

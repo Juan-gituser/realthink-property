@@ -1,7 +1,7 @@
 export type AnalyticsFilterPeriod = "day" | "week" | "month" | "year";
 
 export interface AnalyticsDataPoint {
-  label: string;      // Label sumbu X (misal: Tanggal, Minggu, atau Bulan)
+  label: string; // Label sumbu X (misal: Tanggal, Minggu, atau Bulan)
   propertyViews: number;
   leads: number;
   surveys: number;

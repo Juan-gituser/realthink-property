@@ -37,32 +37,28 @@ const actions = [
 
 export function QuickActions() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {actions.map((action, idx) => {
         const Icon = action.icon;
         return (
-          <motion.div
-            key={idx}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-          >
+          <motion.div key={idx} whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}>
             <Link
               href={action.href}
-              className="bg-[#1C2541]/50 border border-slate-800 hover:border-slate-700 p-5 rounded-3xl flex flex-col justify-between h-full group transition-all"
+              className="group flex h-full flex-col justify-between rounded-3xl border border-slate-800 bg-[#1C2541]/50 p-5 transition-all hover:border-slate-700"
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-2xl border bg-linear-to-br ${action.color}`}>
-                  <Icon className="w-5 h-5" />
+              <div className="mb-4 flex items-center justify-between">
+                <div className={`rounded-2xl border bg-linear-to-br p-3 ${action.color}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
-                <div className="w-8 h-8 rounded-full bg-slate-800/50 flex items-center justify-center text-slate-400 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all">
-                  <ArrowUpRight className="w-4 h-4" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-800/50 text-slate-400 transition-all group-hover:bg-amber-500 group-hover:text-slate-950">
+                  <ArrowUpRight className="h-4 w-4" />
                 </div>
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">
+                <h4 className="text-sm font-bold text-white transition-colors group-hover:text-amber-400">
                   {action.title}
                 </h4>
-                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{action.desc}</p>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{action.desc}</p>
               </div>
             </Link>
           </motion.div>

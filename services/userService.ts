@@ -7,11 +7,7 @@ import { UserProfile } from "@/types/auth";
 export async function fetchUserProfile(userId: string): Promise<UserProfile | null> {
   const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
 
   if (error) {
     console.error("Gagal mengambil profil pengguna:", error.message);

@@ -16,8 +16,10 @@ export default function Can({ permission, children, fallback = null }: CanProps)
 
   useEffect(() => {
     async function checkUserAccess() {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       let role: Role = "guest";
       if (user) {
         const { data: profile } = await supabase

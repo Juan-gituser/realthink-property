@@ -11,7 +11,9 @@ export function useUserRole() {
   return useQuery<UserProfile | null, Error>({
     queryKey: ["userProfile"],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return null;
       return fetchUserProfile(user.id);
     },

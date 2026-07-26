@@ -22,7 +22,8 @@ export default function PropertyMap({ lat, lng, address, title }: PropertyMapPro
 
     // Tile Layer OpenStreetMap
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
     // Custom Marker Icon
@@ -36,7 +37,9 @@ export default function PropertyMap({ lat, lng, address, title }: PropertyMapPro
     // Tambahkan Marker ke Peta
     L.marker([lat, lng], { icon: customIcon })
       .addTo(map)
-      .bindPopup(`<div style="font-family: inherit; font-size: 12px;"><b style="font-size: 13px;">${title}</b><br/>${address}</div>`)
+      .bindPopup(
+        `<div style="font-family: inherit; font-size: 12px;"><b style="font-size: 13px;">${title}</b><br/>${address}</div>`
+      )
       .openPopup();
 
     return () => {
@@ -47,14 +50,12 @@ export default function PropertyMap({ lat, lng, address, title }: PropertyMapPro
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="font-heading font-bold text-gray-900 text-base">
-          Lokasi & Area Sekitar
-        </h3>
+        <h3 className="font-heading text-base font-bold text-gray-900">Lokasi & Area Sekitar</h3>
         <p className="text-xs text-gray-500">{address}</p>
       </div>
-      <div 
-        ref={mapRef} 
-        className="w-full h-95[380px] rounded-2xl border border-gray-200 shadow-sm z-0 relative overflow-hidden" 
+      <div
+        ref={mapRef}
+        className="h-95[380px] relative z-0 w-full overflow-hidden rounded-2xl border border-gray-200 shadow-sm"
       />
     </div>
   );

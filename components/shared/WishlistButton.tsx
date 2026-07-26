@@ -1,20 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Heart } from "lucide-react";
 
 export default function WishlistButton({ propertyId }: { propertyId: string }) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
-
-  useEffect(() => {
-    const wishlist: string[] = JSON.parse(localStorage.getItem("realthink_wishlist") || "[]");
-    setIsWishlisted(wishlist.includes(propertyId));
-  }, [propertyId]);
+  // Menggunakan Lazy Initial State untuk membaca localStorage secara aman tanpa useEffect
+  const [isWishlisted, setIsWishlisted] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const wishlist: string[] = JSON.parse(
+        localStorage.getItem("realthink_wishlist") || "[]"
+      );
+      return wishlist.includes(propertyId);
+    } catch {
+      return false;
+    }
+  });
 
   const toggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault(); // Mencegah trigger link card
-    const wishlist: string[] = JSON.parse(localStorage.getItem("realthink_wishlist") || "[]");
-    
+    const wishlist: string[] = JSON.parse(
+      localStorage.getItem("realthink_wishlist") || "[]"
+    );
+
     let updatedWishlist;
     if (isWishlisted) {
       updatedWishlist = wishlist.filter((id) => id !== propertyId);
@@ -33,10 +41,16 @@ export default function WishlistButton({ propertyId }: { propertyId: string }) {
   return (
     <button
       onClick={toggleWishlist}
-      className="p-2.5 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transition backdrop-blur-sm group"
+      className="group rounded-full bg-white/90 p-2.5 text-gray-700 shadow-md backdrop-blur-sm transition hover:bg-white"
       title="Simpan ke Favorit"
     >
-      <Heart className={`w-4 h-4 transition ${isWishlisted ? "fill-rose-500 text-rose-500" : "text-gray-600 group-hover:text-rose-500"}`} />
+      <Heart
+        className={`h-4 w-4 transition ${
+          isWishlisted
+            ? "fill-rose-500 text-rose-500"
+            : "text-gray-600 group-hover:text-rose-500"
+        }`}
+      />
     </button>
   );
 }

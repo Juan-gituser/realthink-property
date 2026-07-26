@@ -1,4 +1,4 @@
-"tsx"
+"tsx";
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -28,14 +28,14 @@ export function NotificationCenter() {
       {/* Bell Icon Trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 rounded-2xl bg-[#1C2541]/70 border border-slate-800 text-slate-300 hover:text-white hover:border-amber-500/40 transition-all shadow-md flex items-center justify-center group"
+        className="group relative flex items-center justify-center rounded-2xl border border-slate-800 bg-[#1C2541]/70 p-2.5 text-slate-300 shadow-md transition-all hover:border-amber-500/40 hover:text-white"
         aria-label="Notification Center"
       >
-        <Bell className="w-5 h-5 transition-transform group-hover:rotate-12" />
-        
+        <Bell className="h-5 w-5 transition-transform group-hover:rotate-12" />
+
         {/* Unread Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#0B132B] shadow-lg animate-pulse">
+          <span className="absolute -top-1 -right-1 flex h-5 w-5 animate-pulse items-center justify-center rounded-full border-2 border-[#0B132B] bg-amber-500 text-[10px] font-extrabold text-slate-950 shadow-lg">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -49,14 +49,16 @@ export function NotificationCenter() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute right-0 mt-3 w-80 sm:w-96 bg-[#1C2541] border border-slate-800 rounded-3xl shadow-2xl backdrop-blur-xl z-50 overflow-hidden flex flex-col max-h-125[500px]"
+            className="max-h-125[500px] absolute right-0 z-50 mt-3 flex w-80 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-[#1C2541] shadow-2xl backdrop-blur-xl sm:w-96"
           >
             {/* Dropdown Header */}
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/40">
+            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/40 p-4">
               <div className="flex items-center gap-2">
-                <h3 className="text-xs font-extrabold text-white uppercase tracking-wider">Notifikasi</h3>
+                <h3 className="text-xs font-extrabold tracking-wider text-white uppercase">
+                  Notifikasi
+                </h3>
                 {unreadCount > 0 && (
-                  <span className="bg-amber-500/20 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400">
                     {unreadCount} baru
                   </span>
                 )}
@@ -65,40 +67,38 @@ export function NotificationCenter() {
               {unreadCount > 0 && (
                 <button
                   onClick={() => markAllAsRead()}
-                  className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
+                  className="flex items-center gap-1 text-[11px] font-semibold text-amber-400 transition-colors hover:text-amber-300"
                 >
-                  <CheckCheck className="w-3.5 h-3.5" /> Tandai semua dibaca
+                  <CheckCheck className="h-3.5 w-3.5" /> Tandai semua dibaca
                 </button>
               )}
             </div>
 
             {/* Notification List Area */}
-            <div className="overflow-y-auto flex-1 custom-scrollbar">
+            <div className="custom-scrollbar flex-1 overflow-y-auto">
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-400 space-y-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+                <div className="flex flex-col items-center justify-center space-y-2 py-12 text-slate-400">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
                   <p className="text-xs">Memuat notifikasi...</p>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-400 space-y-2 text-center px-4">
-                  <Bell className="w-8 h-8 text-slate-600 mb-1" />
+                <div className="flex flex-col items-center justify-center space-y-2 px-4 py-12 text-center text-slate-400">
+                  <Bell className="mb-1 h-8 w-8 text-slate-600" />
                   <p className="text-xs font-medium text-slate-300">Belum ada notifikasi</p>
-                  <p className="text-[11px] text-slate-500">Semua aktivitas sistem terbaru akan muncul di sini secara real-time.</p>
+                  <p className="text-[11px] text-slate-500">
+                    Semua aktivitas sistem terbaru akan muncul di sini secara real-time.
+                  </p>
                 </div>
               ) : (
                 notifications.map((item) => (
-                  <NotificationCard
-                    key={item.id}
-                    notification={item}
-                    onRead={markAsRead}
-                  />
+                  <NotificationCard key={item.id} notification={item} onRead={markAsRead} />
                 ))
               )}
             </div>
 
             {/* Dropdown Footer */}
-            <div className="p-3 border-t border-slate-800 bg-slate-900/60 text-center">
-              <span className="text-[10px] text-slate-400 font-medium">
+            <div className="border-t border-slate-800 bg-slate-900/60 p-3 text-center">
+              <span className="text-[10px] font-medium text-slate-400">
                 Sinkronisasi Realtime Supabase Aktif ⚡
               </span>
             </div>

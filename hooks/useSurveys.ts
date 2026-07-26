@@ -7,7 +7,11 @@ import { UpdateSurveyValues } from "@/schemas/surveySchema";
 export function useSurveys() {
   const queryClient = useQueryClient();
 
-  const { data: surveys = [], isLoading, error } = useQuery({
+  const {
+    data: surveys = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["surveys"],
     queryFn: fetchSurveys,
   });

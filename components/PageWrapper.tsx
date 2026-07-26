@@ -12,9 +12,5 @@ export default function PageWrapper({ children }: { children: React.ReactNode })
   // Jika di halaman auth atau admin, hilangkan padding atas
   const removePadding = isAuthPage || isAdminPage;
 
-  return (
-    <main className={removePadding ? "" : "pt-16"}>
-      {children}
-    </main>
-  );
+  return <main className={removePadding ? "" : "pt-16"}>{children}</main>;
 }

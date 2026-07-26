@@ -23,59 +23,55 @@ export default function NotificationButton() {
       {/* Tombol Utama */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 rounded-2xl bg-card border border-border text-foreground hover:border-secondary transition-all cursor-pointer flex items-center justify-center shadow-xs"
+        className="bg-card border-border text-foreground hover:border-secondary relative flex cursor-pointer items-center justify-center rounded-2xl border p-2.5 shadow-xs transition-all"
         aria-label="Buka Notifikasi"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="h-5 w-5" />
         {/* Titik Indikator Badge */}
-        <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-secondary rounded-full ring-2 ring-card animate-pulse" />
+        <span className="bg-secondary ring-card absolute top-2 right-2 h-2.5 w-2.5 animate-pulse rounded-full ring-2" />
       </button>
 
       {/* Panel Dropdown Notifikasi */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-card border border-border rounded-3xl shadow-2xl shadow-black/30 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="bg-card border-border animate-in fade-in zoom-in-95 absolute right-0 z-50 mt-3 w-80 overflow-hidden rounded-3xl border shadow-2xl shadow-black/30 duration-150 sm:w-96">
           {/* Header Dropdown */}
-          <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between bg-muted/30">
+          <div className="border-border/60 bg-muted/30 flex items-center justify-between border-b px-5 py-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold font-heading uppercase tracking-wider text-foreground">
+              <h3 className="font-heading text-foreground text-xs font-bold tracking-wider uppercase">
                 Notifikasi
               </h3>
-              <span className="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary text-[10px] font-semibold">
+              <span className="bg-secondary/15 text-secondary rounded-full px-2 py-0.5 text-[10px] font-semibold">
                 Baru
               </span>
             </div>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
-              className="text-[11px] text-muted-foreground hover:text-foreground transition"
+              className="text-muted-foreground hover:text-foreground text-[11px] transition"
             >
               Tandai semua dibaca
             </button>
           </div>
 
           {/* Daftar Isi Notifikasi */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-border/40">
+          <div className="divide-border/40 max-h-80 divide-y overflow-y-auto">
             {/* Contoh Item Notifikasi (Tahap Pengembangan) */}
-            <div className="p-4 hover:bg-muted/50 transition flex gap-3.5 items-start">
-              <div className="p-2 bg-secondary/10 text-secondary rounded-xl shrink-0 mt-0.5">
-                <Info className="w-4 h-4" />
+            <div className="hover:bg-muted/50 flex items-start gap-3.5 p-4 transition">
+              <div className="bg-secondary/10 text-secondary mt-0.5 shrink-0 rounded-xl p-2">
+                <Info className="h-4 w-4" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-bold text-foreground">
-                  Pembaruan Sistem Dashboard
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <p className="text-foreground text-xs font-bold">Pembaruan Sistem Dashboard</p>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
                   Modul fitur khusus member saat ini sedang dalam tahap pengembangan lanjutan.
                 </p>
-                <span className="text-[10px] text-muted-foreground/70 block pt-1">
-                  Baru saja
-                </span>
+                <span className="text-muted-foreground/70 block pt-1 text-[10px]">Baru saja</span>
               </div>
             </div>
           </div>
 
           {/* Footer Dropdown */}
-          <div className="p-3 bg-muted/20 border-t border-border/60 text-center">
-            <span className="text-[11px] text-muted-foreground font-medium">
+          <div className="bg-muted/20 border-border/60 border-t p-3 text-center">
+            <span className="text-muted-foreground text-[11px] font-medium">
               Realthink Property Notification Center
             </span>
           </div>

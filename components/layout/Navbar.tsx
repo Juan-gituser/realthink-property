@@ -4,20 +4,21 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { 
-  Menu, 
-  X, 
-  Building2, 
-  ChevronDown, 
-  Calculator, 
-  FileText, 
-  Landmark, 
-  TrendingUp, 
-  Sparkles, 
-  Star, 
-  LogIn, 
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+import {
+  Menu,
+  X,
+  Building2,
+  ChevronDown,
+  Calculator,
+  FileText,
+  Landmark,
+  TrendingUp,
+  Sparkles,
+  Star,
+  LogIn,
   User,
-  Shield
+  Shield,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,16 +27,16 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [premiumDropdownOpen, setPremiumDropdownOpen] = useState(false);
-  
-  // State untuk menyimpan data user login & status admin
-  const [user, setUser] = useState<any>(null);
+
+  // State untuk menyimpan data user login & status admin menggunakan tipe Supabase
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
   const supabase = createClient();
 
   // Pengecekan status login & role di Client Component
   useEffect(() => {
-    const checkUserAndRole = async (currentUser: any) => {
+    const checkUserAndRole = async (currentUser: SupabaseUser | null) => {
       setUser(currentUser);
       if (!currentUser) {
         setIsAdmin(false);
@@ -69,7 +70,9 @@ export default function Navbar() {
     };
 
     const getInitialUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       await checkUserAndRole(user);
     };
 
@@ -88,31 +91,34 @@ export default function Navbar() {
   // Jika sedang di halaman auth atau halaman admin, Navbar tidak dirender
   const isAuthPage = pathname === "/login" || pathname === "/daftar";
   const isAdminPage = pathname?.startsWith("/admin");
-  
+
   if (isAuthPage || isAdminPage) {
     return null;
   }
 
   return (
-    <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-border shadow-sm">
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+    <header className="border-border fixed top-0 z-50 w-full border-b bg-white/80 shadow-sm backdrop-blur-md">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4">
         {/* Logo Area */}
-        <Link href="/" className="flex items-center gap-2 group">
-          <Building2 className="w-8 h-8 text-secondary group-hover:text-primary transition-colors" />
-          <span className="font-heading font-bold text-xl text-primary">
+        <Link href="/" className="group flex items-center gap-2">
+          <Building2 className="text-secondary group-hover:text-primary h-8 w-8 transition-colors" />
+          <span className="font-heading text-primary text-xl font-bold">
             Realthink <span className="text-secondary">Property</span>
           </span>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6 font-medium text-[13px]">
+        <nav className="hidden items-center gap-6 text-[13px] font-medium md:flex">
           <Link href="/" className="text-foreground hover:text-secondary transition-colors">
             Beranda
           </Link>
           <Link href="/properti" className="text-foreground hover:text-secondary transition-colors">
             Katalog Properti
           </Link>
-          <Link href="/titip-properti" className="text-foreground hover:text-secondary transition-colors">
+          <Link
+            href="/titip-properti"
+            className="text-foreground hover:text-secondary transition-colors"
+          >
             Titip Properti
           </Link>
 
@@ -121,11 +127,13 @@ export default function Navbar() {
             <button
               onMouseEnter={() => setPremiumDropdownOpen(true)}
               onClick={() => setPremiumDropdownOpen(!premiumDropdownOpen)}
-              className="flex items-center gap-1.5 text-foreground hover:text-secondary transition-colors py-2 cursor-pointer"
+              className="text-foreground hover:text-secondary flex cursor-pointer items-center gap-1.5 py-2 transition-colors"
             >
-              <Sparkles className="w-4 h-4 text-amber-500" />
+              <Sparkles className="h-4 w-4 text-amber-500" />
               <span>Fitur Premium</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${premiumDropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform ${premiumDropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             <AnimatePresence>
@@ -135,37 +143,41 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.98 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute top-full left-0 w-64 bg-white border border-border rounded-2xl shadow-xl p-2 space-y-1 z-50"
+                  className="border-border absolute top-full left-0 z-50 w-64 space-y-1 rounded-2xl border bg-white p-2 shadow-xl"
                 >
                   <Link
                     href="/property-financial-planner"
-                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-amber-50/50 transition group"
+                    className="group flex items-start gap-3 rounded-xl p-3 transition hover:bg-amber-50/50"
                     onClick={() => setPremiumDropdownOpen(false)}
                   >
-                    <div className="p-2 bg-amber-100 text-amber-700 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition">
-                      <Calculator className="w-4 h-4" />
+                    <div className="rounded-lg bg-amber-100 p-2 text-amber-700 transition group-hover:bg-amber-600 group-hover:text-white">
+                      <Calculator className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-gray-900 group-hover:text-amber-600 transition">
+                      <p className="text-xs font-bold text-gray-900 transition group-hover:text-amber-600">
                         Financial Planner
                       </p>
-                      <p className="text-[11px] text-muted-foreground">Simulasi KPR & Keuangan Properti</p>
+                      <p className="text-muted-foreground text-[11px]">
+                        Simulasi KPR & Keuangan Properti
+                      </p>
                     </div>
                   </Link>
 
                   <Link
                     href="/rekomendasi-properti"
-                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-amber-50/50 transition group"
+                    className="group flex items-start gap-3 rounded-xl p-3 transition hover:bg-amber-50/50"
                     onClick={() => setPremiumDropdownOpen(false)}
                   >
-                    <div className="p-2 bg-amber-100 text-amber-700 rounded-lg group-hover:bg-amber-600 group-hover:text-white transition">
-                      <Star className="w-4 h-4" />
+                    <div className="rounded-lg bg-amber-100 p-2 text-amber-700 transition group-hover:bg-amber-600 group-hover:text-white">
+                      <Star className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-gray-900 group-hover:text-amber-600 transition">
+                      <p className="text-xs font-bold text-gray-900 transition group-hover:text-amber-600">
                         Rekomendasi Properti
                       </p>
-                      <p className="text-[11px] text-muted-foreground">Pilihan terbaik khusus untuk Anda</p>
+                      <p className="text-muted-foreground text-[11px]">
+                        Pilihan terbaik khusus untuk Anda
+                      </p>
                     </div>
                   </Link>
                 </motion.div>
@@ -178,10 +190,12 @@ export default function Navbar() {
             <button
               onMouseEnter={() => setDropdownOpen(true)}
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-1 text-foreground hover:text-secondary transition-colors py-2 cursor-pointer"
+              className="text-foreground hover:text-secondary flex cursor-pointer items-center gap-1 py-2 transition-colors"
             >
               Tools Properti{" "}
-              <ChevronDown className={`w-4 h-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             <AnimatePresence>
@@ -191,61 +205,63 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10, scale: 0.98 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute top-full left-0 w-60 bg-white border border-border rounded-2xl shadow-xl py-2 space-y-1 z-50"
+                  className="border-border absolute top-full left-0 z-50 w-60 space-y-1 rounded-2xl border bg-white py-2 shadow-xl"
                 >
                   <Link
                     href="/kalkulator/kpr"
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/10 hover:text-secondary transition text-xs font-semibold text-foreground"
+                    className="hover:bg-secondary/10 hover:text-secondary text-foreground flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition"
                     onClick={() => setDropdownOpen(false)}
                   >
-                    <div className="p-2 bg-secondary/10 text-secondary rounded-lg">
-                      <Calculator className="w-4 h-4" />
+                    <div className="bg-secondary/10 text-secondary rounded-lg p-2">
+                      <Calculator className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="font-bold">Kalkulator KPR</p>
-                      <p className="text-[10px] text-muted-foreground">Simulasi cicilan bulanan</p>
+                      <p className="text-muted-foreground text-[10px]">Simulasi cicilan bulanan</p>
                     </div>
                   </Link>
 
                   <Link
                     href="/kalkulator/roi"
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/10 hover:text-secondary transition text-xs font-semibold text-foreground"
+                    className="hover:bg-secondary/10 hover:text-secondary text-foreground flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition"
                     onClick={() => setDropdownOpen(false)}
                   >
-                    <div className="p-2 bg-secondary/10 text-secondary rounded-lg">
-                      <TrendingUp className="w-4 h-4" />
+                    <div className="bg-secondary/10 text-secondary rounded-lg p-2">
+                      <TrendingUp className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="font-bold">Kalkulator ROI</p>
-                      <p className="text-[10px] text-muted-foreground">Hitung hasil investasi properti</p>
+                      <p className="text-muted-foreground text-[10px]">
+                        Hitung hasil investasi properti
+                      </p>
                     </div>
                   </Link>
 
                   <Link
                     href="/kalkulator/pajak"
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/10 hover:text-secondary transition text-xs font-semibold text-foreground"
+                    className="hover:bg-secondary/10 hover:text-secondary text-foreground flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition"
                     onClick={() => setDropdownOpen(false)}
                   >
-                    <div className="p-2 bg-secondary/10 text-secondary rounded-lg">
-                      <FileText className="w-4 h-4" />
+                    <div className="bg-secondary/10 text-secondary rounded-lg p-2">
+                      <FileText className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="font-bold">Estimasi Pajak (BPHTB)</p>
-                      <p className="text-[10px] text-muted-foreground">Pajak pembeli properti</p>
+                      <p className="text-muted-foreground text-[10px]">Pajak pembeli properti</p>
                     </div>
                   </Link>
 
                   <Link
                     href="/kalkulator/notaris"
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/10 hover:text-secondary transition text-xs font-semibold text-foreground"
+                    className="hover:bg-secondary/10 hover:text-secondary text-foreground flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition"
                     onClick={() => setDropdownOpen(false)}
                   >
-                    <div className="p-2 bg-secondary/10 text-secondary rounded-lg">
-                      <Landmark className="w-4 h-4" />
+                    <div className="bg-secondary/10 text-secondary rounded-lg p-2">
+                      <Landmark className="h-4 w-4" />
                     </div>
                     <div>
                       <p className="font-bold">Biaya Notaris</p>
-                      <p className="text-[10px] text-muted-foreground">AJB, BBN, & Akta Notaris</p>
+                      <p className="text-muted-foreground text-[10px]">AJB, BBN, & Akta Notaris</p>
                     </div>
                   </Link>
                 </motion.div>
@@ -256,37 +272,40 @@ export default function Navbar() {
           <Link href="/artikel" className="text-foreground hover:text-secondary transition-colors">
             Artikel & Berita
           </Link>
-          <Link href="/tentang-kami" className="text-foreground hover:text-secondary transition-colors">
+          <Link
+            href="/tentang-kami"
+            className="text-foreground hover:text-secondary transition-colors"
+          >
             Tentang Kami
           </Link>
         </nav>
 
         {/* Tombol Auth / Panel Admin Desktop (Dinamis) */}
-        <div className="hidden md:flex items-center">
+        <div className="hidden items-center md:flex">
           {user ? (
             isAdmin ? (
               <Link
                 href="/admin"
-                className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wide text-white bg-slate-900 hover:bg-slate-800 transition-all duration-300 shadow-sm hover:shadow-md border border-amber-500/40 cursor-pointer"
+                className="flex cursor-pointer items-center gap-2 rounded-full border border-amber-500/40 bg-slate-900 px-5 py-2 text-xs font-semibold tracking-wide text-white shadow-sm transition-all duration-300 hover:bg-slate-800 hover:shadow-md"
               >
-                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                <Shield className="h-3.5 w-3.5 text-amber-400" />
                 <span>Panel Admin</span>
               </Link>
             ) : (
               <Link
                 href="/dashboard/member"
-                className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wide text-white bg-primary hover:bg-primary/90 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
+                className="bg-primary hover:bg-primary/90 flex cursor-pointer items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold tracking-wide text-white shadow-sm transition-all duration-300 hover:shadow-md"
               >
-                <User className="w-3.5 h-3.5" />
+                <User className="h-3.5 w-3.5" />
                 <span>Dashboard Member</span>
               </Link>
             )
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold tracking-wide text-primary bg-primary/5 border border-primary/15 hover:bg-primary hover:text-white hover:border-transparent transition-all duration-300 shadow-sm hover:shadow-md group cursor-pointer"
+              className="text-primary bg-primary/5 border-primary/15 hover:bg-primary group flex cursor-pointer items-center gap-2 rounded-full border px-5 py-2 text-xs font-semibold tracking-wide shadow-sm transition-all duration-300 hover:border-transparent hover:text-white hover:shadow-md"
             >
-              <LogIn className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              <LogIn className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               <span>Masuk</span>
             </Link>
           )}
@@ -294,11 +313,11 @@ export default function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-foreground p-2 cursor-pointer"
+          className="text-foreground cursor-pointer p-2 md:hidden"
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle Menu"
         >
-          {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
@@ -309,95 +328,97 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-border py-4 shadow-lg max-h-[calc(100vh-5rem)] overflow-y-auto"
+            className="border-border absolute top-20 left-0 max-h-[calc(100vh-5rem)] w-full overflow-y-auto border-b bg-white py-4 shadow-lg md:hidden"
           >
-            <div className="container mx-auto px-4 flex flex-col gap-2 text-sm">
+            <div className="container mx-auto flex flex-col gap-2 px-4 text-sm">
               <Link
                 href="/"
-                className="text-foreground hover:text-secondary font-medium py-2 border-b border-border/50"
+                className="text-foreground hover:text-secondary border-border/50 border-b py-2 font-medium"
                 onClick={() => setIsOpen(false)}
               >
                 Beranda
               </Link>
               <Link
                 href="/properti"
-                className="text-foreground hover:text-secondary font-medium py-2 border-b border-border/50"
+                className="text-foreground hover:text-secondary border-border/50 border-b py-2 font-medium"
                 onClick={() => setIsOpen(false)}
               >
                 Katalog Properti
               </Link>
               <Link
                 href="/titip-properti"
-                className="text-foreground hover:text-secondary font-medium py-2 border-b border-border/50"
+                className="text-foreground hover:text-secondary border-border/50 border-b py-2 font-medium"
                 onClick={() => setIsOpen(false)}
               >
                 Titip Properti
               </Link>
 
               {/* Sub-menu Fitur Premium untuk Mobile */}
-              <div className="py-2 border-b border-border/50 flex flex-col gap-2">
-                <span className="text-xs font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" /> Fitur Premium
+              <div className="border-border/50 flex flex-col gap-2 border-b py-2">
+                <span className="flex items-center gap-1 text-xs font-bold tracking-wider text-amber-600 uppercase">
+                  <Sparkles className="h-3.5 w-3.5" /> Fitur Premium
                 </span>
                 <Link
                   href="/property-financial-planner"
-                  className="text-foreground hover:text-secondary text-sm font-medium pl-3 py-1 flex items-center gap-2"
+                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
                   onClick={() => setIsOpen(false)}
                 >
-                  <Calculator className="w-4 h-4 text-amber-500" /> Financial Planner
+                  <Calculator className="h-4 w-4 text-amber-500" /> Financial Planner
                 </Link>
                 <Link
                   href="/rekomendasi-properti"
-                  className="text-foreground hover:text-secondary text-sm font-medium pl-3 py-1 flex items-center gap-2"
+                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
                   onClick={() => setIsOpen(false)}
                 >
-                  <Star className="w-4 h-4 text-amber-500" /> Rekomendasi Properti
+                  <Star className="h-4 w-4 text-amber-500" /> Rekomendasi Properti
                 </Link>
               </div>
 
               {/* Sub-menu Tools Properti untuk Mobile */}
-              <div className="py-2 border-b border-border/50 flex flex-col gap-2">
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tools Properti</span>
+              <div className="border-border/50 flex flex-col gap-2 border-b py-2">
+                <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
+                  Tools Properti
+                </span>
                 <Link
                   href="/kalkulator/kpr"
-                  className="text-foreground hover:text-secondary text-sm font-medium pl-3 py-1 flex items-center gap-2"
+                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
                   onClick={() => setIsOpen(false)}
                 >
-                  <Calculator className="w-4 h-4 text-secondary" /> Kalkulator KPR
+                  <Calculator className="text-secondary h-4 w-4" /> Kalkulator KPR
                 </Link>
                 <Link
                   href="/kalkulator/roi"
-                  className="text-foreground hover:text-secondary text-sm font-medium pl-3 py-1 flex items-center gap-2"
+                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
                   onClick={() => setIsOpen(false)}
                 >
-                  <TrendingUp className="w-4 h-4 text-secondary" /> Kalkulator ROI
+                  <TrendingUp className="text-secondary h-4 w-4" /> Kalkulator ROI
                 </Link>
                 <Link
                   href="/kalkulator/pajak"
-                  className="text-foreground hover:text-secondary text-sm font-medium pl-3 py-1 flex items-center gap-2"
+                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
                   onClick={() => setIsOpen(false)}
                 >
-                  <FileText className="w-4 h-4 text-secondary" /> Estimasi Pajak (BPHTB)
+                  <FileText className="text-secondary h-4 w-4" /> Estimasi Pajak (BPHTB)
                 </Link>
                 <Link
                   href="/kalkulator/notaris"
-                  className="text-foreground hover:text-secondary text-sm font-medium pl-3 py-1 flex items-center gap-2"
+                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
                   onClick={() => setIsOpen(false)}
                 >
-                  <Landmark className="w-4 h-4 text-secondary" /> Biaya Notaris
+                  <Landmark className="text-secondary h-4 w-4" /> Biaya Notaris
                 </Link>
               </div>
 
               <Link
                 href="/artikel"
-                className="text-foreground hover:text-secondary font-medium py-2 border-b border-border/50"
+                className="text-foreground hover:text-secondary border-border/50 border-b py-2 font-medium"
                 onClick={() => setIsOpen(false)}
               >
                 Artikel
               </Link>
               <Link
                 href="/tentang-kami"
-                className="text-foreground hover:text-secondary font-medium py-2 border-b border-border/50"
+                className="text-foreground hover:text-secondary border-border/50 border-b py-2 font-medium"
                 onClick={() => setIsOpen(false)}
               >
                 Tentang Kami
@@ -408,27 +429,27 @@ export default function Navbar() {
                 isAdmin ? (
                   <Link
                     href="/admin"
-                    className="flex items-center justify-center gap-2 bg-slate-900 text-white text-center px-6 py-3 mt-3 rounded-xl font-medium hover:bg-slate-800 transition-all duration-300 shadow-sm border border-amber-500/40"
+                    className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-slate-900 px-6 py-3 text-center font-medium text-white shadow-sm transition-all duration-300 hover:bg-slate-800"
                     onClick={() => setIsOpen(false)}
                   >
-                    <Shield className="w-4 h-4 text-amber-400" /> Panel Admin
+                    <Shield className="h-4 w-4 text-amber-400" /> Panel Admin
                   </Link>
                 ) : (
                   <Link
                     href="/dashboard/member"
-                    className="flex items-center justify-center gap-2 bg-primary text-white text-center px-6 py-3 mt-3 rounded-xl font-medium hover:bg-primary/90 transition-all duration-300 shadow-sm"
+                    className="bg-primary hover:bg-primary/90 mt-3 flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-center font-medium text-white shadow-sm transition-all duration-300"
                     onClick={() => setIsOpen(false)}
                   >
-                    <User className="w-4 h-4" /> Dashboard Member
+                    <User className="h-4 w-4" /> Dashboard Member
                   </Link>
                 )
               ) : (
                 <Link
                   href="/login"
-                  className="flex items-center justify-center gap-2 bg-primary/5 border border-primary/15 text-primary text-center px-6 py-3 mt-3 rounded-xl font-medium hover:bg-primary hover:text-white transition-all duration-300 shadow-sm"
+                  className="bg-primary/5 border-primary/15 text-primary hover:bg-primary mt-3 flex items-center justify-center gap-2 rounded-xl border px-6 py-3 text-center font-medium shadow-sm transition-all duration-300 hover:text-white"
                   onClick={() => setIsOpen(false)}
                 >
-                  <LogIn className="w-4 h-4" /> Masuk
+                  <LogIn className="h-4 w-4" /> Masuk
                 </Link>
               )}
             </div>

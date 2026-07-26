@@ -12,7 +12,8 @@ export const ALL_PROPERTIES = [
     bathrooms: 2,
     landArea: 120,
     buildingArea: 90,
-    imageUrl: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
     status: "dijual" as const,
     category: "Rumah",
     isFeatured: true,
@@ -30,7 +31,8 @@ export const ALL_PROPERTIES = [
     bathrooms: 1,
     landArea: 45,
     buildingArea: 45,
-    imageUrl: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
     status: "disewa" as const,
     category: "Apartemen",
     isFeatured: false,
@@ -48,7 +50,8 @@ export const ALL_PROPERTIES = [
     bathrooms: 3,
     landArea: 150,
     buildingArea: 300,
-    imageUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
     status: "dijual" as const,
     category: "Ruko",
     isFeatured: true,
@@ -66,7 +69,8 @@ export const ALL_PROPERTIES = [
     bathrooms: 4,
     landArea: 500,
     buildingArea: 350,
-    imageUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
     status: "dijual" as const,
     category: "Villa",
     isFeatured: true,
@@ -84,7 +88,8 @@ export const ALL_PROPERTIES = [
     bathrooms: 3,
     landArea: 160,
     buildingArea: 130,
-    imageUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
     status: "dijual" as const,
     category: "Rumah",
     isFeatured: false,
@@ -102,7 +107,8 @@ export const ALL_PROPERTIES = [
     bathrooms: 1,
     landArea: 32,
     buildingArea: 32,
-    imageUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
     status: "disewa" as const,
     category: "Apartemen",
     isFeatured: false,

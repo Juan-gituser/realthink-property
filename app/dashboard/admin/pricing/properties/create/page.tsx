@@ -24,50 +24,64 @@ export default function CreatePropertyPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="bg-[#1C2541] border border-slate-800 p-6 rounded-3xl flex items-center justify-between">
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="flex items-center justify-between rounded-3xl border border-slate-800 bg-[#1C2541] p-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-            <Building2 className="w-6 h-6" />
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-400">
+            <Building2 className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">Tambah Property Baru</h1>
-            <p className="text-xs text-slate-300">Masukkan informasi listing properti baru ke database Supabase.</p>
+            <p className="text-xs text-slate-300">
+              Masukkan informasi listing properti baru ke database Supabase.
+            </p>
           </div>
         </div>
-        <Link href="/dashboard/admin" className="text-xs text-slate-400 hover:text-white transition-colors">
+        <Link
+          href="/dashboard/admin"
+          className="text-xs text-slate-400 transition-colors hover:text-white"
+        >
           ← Kembali
         </Link>
       </div>
 
-      <form action={handleCreate} className="bg-[#1C2541]/60 border border-slate-800 p-8 rounded-3xl space-y-5">
+      <form
+        action={handleCreate}
+        className="space-y-5 rounded-3xl border border-slate-800 bg-[#1C2541]/60 p-8"
+      >
         <div>
-          <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5">Judul Properti</label>
-          <input 
-            type="text" 
-            name="title" 
-            required 
-            placeholder="Contoh: Cluster Mewah Grand Kenari" 
-            className="w-full bg-[#0B132B] border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500" 
+          <label className="mb-1.5 block text-[10px] font-bold text-slate-400 uppercase">
+            Judul Properti
+          </label>
+          <input
+            type="text"
+            name="title"
+            required
+            placeholder="Contoh: Cluster Mewah Grand Kenari"
+            className="w-full rounded-xl border border-slate-800 bg-[#0B132B] px-4 py-3 text-xs text-white focus:border-amber-500 focus:outline-none"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5">Harga (Rp)</label>
-            <input 
-              type="number" 
-              name="price" 
-              required 
-              placeholder="1500000000" 
-              className="w-full bg-[#0B132B] border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500" 
+            <label className="mb-1.5 block text-[10px] font-bold text-slate-400 uppercase">
+              Harga (Rp)
+            </label>
+            <input
+              type="number"
+              name="price"
+              required
+              placeholder="1500000000"
+              className="w-full rounded-xl border border-slate-800 bg-[#0B132B] px-4 py-3 text-xs text-white focus:border-amber-500 focus:outline-none"
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5">Status Listing</label>
-            <select 
-              name="status" 
-              className="w-full bg-[#0B132B] border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+            <label className="mb-1.5 block text-[10px] font-bold text-slate-400 uppercase">
+              Status Listing
+            </label>
+            <select
+              name="status"
+              className="w-full rounded-xl border border-slate-800 bg-[#0B132B] px-4 py-3 text-xs text-white focus:border-amber-500 focus:outline-none"
             >
               <option value="available">Available</option>
               <option value="sold">Sold</option>
@@ -77,21 +91,23 @@ export default function CreatePropertyPage() {
         </div>
 
         <div>
-          <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5">Lokasi</label>
-          <input 
-            type="text" 
-            name="location" 
-            required 
-            placeholder="Jakarta Selatan, DKI Jakarta" 
-            className="w-full bg-[#0B132B] border border-slate-800 px-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500" 
+          <label className="mb-1.5 block text-[10px] font-bold text-slate-400 uppercase">
+            Lokasi
+          </label>
+          <input
+            type="text"
+            name="location"
+            required
+            placeholder="Jakarta Selatan, DKI Jakarta"
+            className="w-full rounded-xl border border-slate-800 bg-[#0B132B] px-4 py-3 text-xs text-white focus:border-amber-500 focus:outline-none"
           />
         </div>
 
-        <button 
-          type="submit" 
-          className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2"
+        <button
+          type="submit"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
         >
-          <Save className="w-4 h-4" /> Simpan Properti ke Supabase
+          <Save className="h-4 w-4" /> Simpan Properti ke Supabase
         </button>
       </form>
     </div>

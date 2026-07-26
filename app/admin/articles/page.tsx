@@ -3,9 +3,16 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { 
-  Plus, Search, Edit, Trash2, Eye, 
-  BookOpen, CheckCircle2, Clock, Calendar
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Eye,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  Calendar,
 } from "lucide-react";
 
 // Data Dummy Artikel Admin
@@ -18,7 +25,8 @@ const INITIAL_ARTICLES = [
     author: "Tim Realthink",
     status: "published" as const, // published | draft
     publishedAt: "20 Jul 2026",
-    imageUrl: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=300&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=300&q=80",
   },
   {
     id: "2",
@@ -28,7 +36,8 @@ const INITIAL_ARTICLES = [
     author: "Tim Realthink",
     status: "published" as const,
     publishedAt: "18 Jul 2026",
-    imageUrl: "https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=300&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=300&q=80",
   },
   {
     id: "3",
@@ -38,7 +47,8 @@ const INITIAL_ARTICLES = [
     author: "Tim Realthink",
     status: "draft" as const,
     publishedAt: "15 Jul 2026",
-    imageUrl: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=300&q=80",
+    imageUrl:
+      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=300&q=80",
   },
 ];
 
@@ -67,12 +77,11 @@ export default function AdminArticlesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
       {/* Header & Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-gray-900">
+          <h1 className="font-heading text-2xl font-bold text-gray-900">
             Kelola Artikel & Edukasi
           </h1>
           <p className="text-sm text-gray-500">
@@ -81,42 +90,42 @@ export default function AdminArticlesPage() {
         </div>
         <Link
           href="/admin/articles/create"
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold px-4 py-2.5 rounded-xl transition shadow-sm text-sm"
+          className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition"
         >
-          <Plus className="w-4 h-4" /> Tulis Artikel Baru
+          <Plus className="h-4 w-4" /> Tulis Artikel Baru
         </Link>
       </div>
 
       {/* Ringkasan Ringkas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
-            <BookOpen className="w-5 h-5" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg bg-blue-50 p-2.5 text-blue-600">
+            <BookOpen className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Total Artikel</p>
+            <p className="text-xs font-medium text-gray-500">Total Artikel</p>
             <p className="text-xl font-bold text-gray-900">{articles.length}</p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-lg">
-            <CheckCircle2 className="w-5 h-5" />
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg bg-emerald-50 p-2.5 text-emerald-600">
+            <CheckCircle2 className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Published</p>
+            <p className="text-xs font-medium text-gray-500">Published</p>
             <p className="text-xl font-bold text-gray-900">
               {articles.filter((a) => a.status === "published").length}
             </p>
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-amber-50 text-amber-600 rounded-lg">
-            <Clock className="w-5 h-5" />
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="rounded-lg bg-amber-50 p-2.5 text-amber-600">
+            <Clock className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-medium">Draft</p>
+            <p className="text-xs font-medium text-gray-500">Draft</p>
             <p className="text-xl font-bold text-gray-900">
               {articles.filter((a) => a.status === "draft").length}
             </p>
@@ -125,16 +134,16 @@ export default function AdminArticlesPage() {
       </div>
 
       {/* Filter Panel */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-3">
         {/* Search */}
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+          <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Cari judul artikel..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm outline-none focus:ring-1 focus:ring-secondary"
+            className="focus:ring-secondary w-full rounded-lg border py-2 pr-3 pl-9 text-sm outline-none focus:ring-1"
           />
         </div>
 
@@ -143,7 +152,7 @@ export default function AdminArticlesPage() {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full py-2 px-3 border rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-secondary"
+            className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:ring-1"
           >
             <option value="Semua">Semua Kategori</option>
             <option value="Panduan Properti">Panduan Properti</option>
@@ -157,7 +166,7 @@ export default function AdminArticlesPage() {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full py-2 px-3 border rounded-lg text-sm bg-white outline-none focus:ring-1 focus:ring-secondary"
+            className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:ring-1"
           >
             <option value="Semua">Semua Status</option>
             <option value="published">Published</option>
@@ -167,11 +176,11 @@ export default function AdminArticlesPage() {
       </div>
 
       {/* Tabel Artikel */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase font-semibold text-gray-600 tracking-wider">
+              <tr className="border-b border-gray-200 bg-gray-50 text-xs font-semibold tracking-wider text-gray-600 uppercase">
                 <th className="p-4">Artikel</th>
                 <th className="p-4">Kategori</th>
                 <th className="p-4">Penulis</th>
@@ -183,12 +192,11 @@ export default function AdminArticlesPage() {
             <tbody className="divide-y divide-gray-200 text-sm">
               {filteredArticles.length > 0 ? (
                 filteredArticles.map((article) => (
-                  <tr key={article.id} className="hover:bg-gray-50/80 transition">
-                    
+                  <tr key={article.id} className="transition hover:bg-gray-50/80">
                     {/* Thumbnail & Title */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-16 h-12 rounded-lg overflow-hidden border border-gray-200 bg-gray-100 shrink-0">
+                        <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                           <Image
                             src={article.imageUrl}
                             alt={article.title}
@@ -196,7 +204,7 @@ export default function AdminArticlesPage() {
                             className="object-cover"
                           />
                         </div>
-                        <p className="font-semibold text-gray-900 line-clamp-2 max-w-md">
+                        <p className="line-clamp-2 max-w-md font-semibold text-gray-900">
                           {article.title}
                         </p>
                       </div>
@@ -204,67 +212,64 @@ export default function AdminArticlesPage() {
 
                     {/* Category */}
                     <td className="p-4 whitespace-nowrap">
-                      <span className="bg-gray-100 text-gray-700 text-xs px-2.5 py-1 rounded-md font-medium">
+                      <span className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                         {article.category}
                       </span>
                     </td>
 
                     {/* Author */}
-                    <td className="p-4 whitespace-nowrap text-gray-600">
-                      {article.author}
-                    </td>
+                    <td className="p-4 whitespace-nowrap text-gray-600">{article.author}</td>
 
                     {/* Status */}
                     <td className="p-4 whitespace-nowrap">
                       {article.status === "published" ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                           Published
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
                           Draft
                         </span>
                       )}
                     </td>
 
                     {/* Date */}
-                    <td className="p-4 whitespace-nowrap text-xs text-gray-500">
+                    <td className="p-4 text-xs whitespace-nowrap text-gray-500">
                       <div className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        <Calendar className="h-3.5 w-3.5 text-gray-400" />
                         {article.publishedAt}
                       </div>
                     </td>
 
                     {/* Action */}
-                    <td className="p-4 whitespace-nowrap text-center">
+                    <td className="p-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <Link
                           href={`/artikel/${article.slug}`}
                           target="_blank"
                           title="Lihat Artikel"
-                          className="p-2 text-gray-500 hover:text-primary hover:bg-gray-100 rounded-lg transition"
+                          className="hover:text-primary rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="h-4 w-4" />
                         </Link>
                         <Link
                           href={`/admin/articles/edit/${article.id}`}
                           title="Edit Artikel"
-                          className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          className="rounded-lg p-2 text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="h-4 w-4" />
                         </Link>
                         <button
                           onClick={() => setDeleteId(article.id)}
                           title="Hapus Artikel"
-                          className="p-2 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                          className="rounded-lg p-2 text-gray-500 transition hover:bg-rose-50 hover:text-rose-600"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
-
                   </tr>
                 ))
               ) : (
@@ -282,21 +287,19 @@ export default function AdminArticlesPage() {
       {/* Modal Hapus */}
       {deleteId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
+          <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900">Hapus Artikel Ini?</h3>
-            <p className="text-sm text-gray-500">
-              Artikel yang dihapus tidak dapat dikembalikan.
-            </p>
+            <p className="text-sm text-gray-500">Artikel yang dihapus tidak dapat dikembalikan.</p>
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setDeleteId(null)}
-                className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
               >
                 Batal
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
-                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition shadow"
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-rose-700"
               >
                 Hapus
               </button>
@@ -304,7 +307,6 @@ export default function AdminArticlesPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

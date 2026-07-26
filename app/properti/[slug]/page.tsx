@@ -1,4 +1,3 @@
-import { use } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import DetailPropertiClient from "@/components/DetailPropertiClient";
@@ -17,11 +16,7 @@ async function incrementViewCount(propertyId: string) {
 async function getPropertyBySlug(slug: string) {
   const supabase = createClient();
 
-  const { data, error } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("slug", slug)
-    .single();
+  const { data, error } = await supabase.from("properties").select("*").eq("slug", slug).single();
 
   if (error || !data) {
     return null;
@@ -41,11 +36,13 @@ async function getPropertyBySlug(slug: string) {
     bathrooms: data.bathrooms || 0,
     landArea: data.land_area || 0,
     buildingArea: data.building_area || 0,
-    imageUrl: data.image_url || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
+    imageUrl:
+      data.image_url ||
+      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
     status: (data.status === "disewa" ? "disewa" : "dijual") as "dijual" | "disewa",
     category: data.category || "Properti",
     isFeatured: data.is_featured || false,
-    lat: data.lat || -6.2000,
+    lat: data.lat || -6.2,
     lng: data.lng || 106.8166,
     whatsapp: data.whatsapp || "6281234567890",
     phone: data.phone || "+6221555888",
@@ -54,7 +51,7 @@ async function getPropertyBySlug(slug: string) {
 }
 
 export default async function DetailPropertiPage({ params }: PageProps) {
-  const resolvedParams = use(params);
+  const resolvedParams = await params;
   const { slug } = resolvedParams;
 
   // Ambil data properti asli dari Supabase
@@ -67,7 +64,5 @@ export default async function DetailPropertiPage({ params }: PageProps) {
   // Tambahkan view count secara otomatis
   await incrementViewCount(properti.id);
 
-  return (
-    <DetailPropertiClient properti={properti} />
-  );
+  return <DetailPropertiClient properti={properti} />;
 }

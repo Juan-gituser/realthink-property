@@ -24,10 +24,7 @@ export async function fetchNotifications(): Promise<NotificationItem[]> {
  */
 export async function markAsRead(id: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase
-    .from("notifications")
-    .update({ is_read: true })
-    .eq("id", id);
+  const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id);
 
   if (error) {
     throw new Error(`Gagal memperbarui status notifikasi: ${error.message}`);

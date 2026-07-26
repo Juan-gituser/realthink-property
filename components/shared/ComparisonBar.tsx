@@ -15,7 +15,7 @@ export default function ComparisonBar() {
 
     updateCompareState();
     window.addEventListener("storage", updateCompareState);
-    
+
     // Custom event untuk update state dalam tab yang sama
     window.addEventListener("compareChanged", updateCompareState as EventListener);
 
@@ -25,20 +25,13 @@ export default function ComparisonBar() {
     };
   }, []);
 
-  const removeItem = (id: string) => {
-    const updated = compareList.filter((item) => item !== id);
-    localStorage.setItem("realthink_compare", JSON.stringify(updated));
-    setCompareList(updated);
-    window.dispatchEvent(new Event("compareChanged"));
-  };
-
   if (compareList.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-6 border border-slate-800 animate-fade-in max-w-lg w-full mx-4">
+    <div className="animate-fade-in fixed bottom-6 left-1/2 z-50 mx-4 flex w-full max-w-lg -translate-x-1/2 items-center gap-6 rounded-2xl border border-slate-800 bg-slate-900 px-6 py-3.5 text-white shadow-2xl">
       <div className="flex items-center gap-2.5">
-        <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
-          <Scale className="w-5 h-5" />
+        <div className="rounded-xl bg-amber-500/10 p-2 text-amber-400">
+          <Scale className="h-5 w-5" />
         </div>
         <div>
           <p className="text-xs font-semibold text-white">Bandingkan Properti</p>
@@ -46,10 +39,10 @@ export default function ComparisonBar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="ml-auto flex items-center gap-2">
         <Link
           href="/properti/bandingkan"
-          className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+          className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-sm transition hover:bg-amber-600"
         >
           Bandingkan Sekarang
         </Link>
@@ -59,10 +52,10 @@ export default function ComparisonBar() {
             setCompareList([]);
             window.dispatchEvent(new Event("compareChanged"));
           }}
-          className="text-slate-400 hover:text-white p-1"
+          className="p-1 text-slate-400 hover:text-white"
           title="Reset"
         >
-          <X className="w-4 h-4" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>

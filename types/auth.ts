@@ -1,10 +1,5 @@
-export type UserRole = 
-  | 'guest' 
-  | 'member' 
-  | 'smart_buyer' 
-  | 'investor_pro' 
-  | 'admin' 
-  | 'super_admin';
+export type UserRole =
+  "guest" | "member" | "smart_buyer" | "investor_pro" | "admin" | "super_admin";
 
 export interface UserProfile {
   id: string;

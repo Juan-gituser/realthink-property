@@ -20,16 +20,50 @@ export async function fetchAnalyticsData(period: AnalyticsFilterPeriod): Promise
 
   if (error) {
     // Fallback jika tabel khusus belum ada atau untuk simulasi production-ready query
-    console.warn("Gagal mengambil dari analytics_metrics, menggunakan query default:", error.message);
+    console.warn(
+      "Gagal mengambil dari analytics_metrics, menggunakan query default:",
+      error.message
+    );
   }
 
   // Data aktual dari database atau fallback terstruktur aman
-  const chartData: AnalyticsDataPoint[] = data && data.length > 0 ? data : [
-    { label: "Periode 1", propertyViews: 1200, leads: 85, surveys: 32, deals: 12, revenue: 1850000000 },
-    { label: "Periode 2", propertyViews: 2100, leads: 140, surveys: 48, deals: 19, revenue: 3200000000 },
-    { label: "Periode 3", propertyViews: 1800, leads: 110, surveys: 40, deals: 15, revenue: 2400000000 },
-    { label: "Periode 4", propertyViews: 3200, leads: 220, surveys: 75, deals: 28, revenue: 4900000000 },
-  ];
+  const chartData: AnalyticsDataPoint[] =
+    data && data.length > 0
+      ? data
+      : [
+          {
+            label: "Periode 1",
+            propertyViews: 1200,
+            leads: 85,
+            surveys: 32,
+            deals: 12,
+            revenue: 1850000000,
+          },
+          {
+            label: "Periode 2",
+            propertyViews: 2100,
+            leads: 140,
+            surveys: 48,
+            deals: 19,
+            revenue: 3200000000,
+          },
+          {
+            label: "Periode 3",
+            propertyViews: 1800,
+            leads: 110,
+            surveys: 40,
+            deals: 15,
+            revenue: 2400000000,
+          },
+          {
+            label: "Periode 4",
+            propertyViews: 3200,
+            leads: 220,
+            surveys: 75,
+            deals: 28,
+            revenue: 4900000000,
+          },
+        ];
 
   // Hitung ringkasan total dari chart data
   const summary: AnalyticsSummary = chartData.reduce(

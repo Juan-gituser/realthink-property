@@ -24,39 +24,47 @@ export default async function AdminPermissionsPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto p-6 bg-slate-950 text-slate-100 min-h-screen">
-      <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-6 rounded-3xl">
-        <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-          <Shield className="w-6 h-6" />
+    <div className="mx-auto min-h-screen max-w-5xl space-y-8 bg-slate-950 p-6 text-slate-100">
+      <div className="flex items-center gap-3 rounded-3xl border border-slate-800 bg-slate-900 p-6">
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-400">
+          <Shield className="h-6 w-6" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-white">RBAC & Route Security Manager</h1>
-          <p className="text-xs text-slate-400">Atur hak akses rute dan proteksi level peran secara dinamis langsung dari database.</p>
+          <p className="text-xs text-slate-400">
+            Atur hak akses rute dan proteksi level peran secara dinamis langsung dari database.
+          </p>
         </div>
       </div>
 
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 space-y-6">
-        <h2 className="text-base font-bold text-white flex items-center gap-2">
-          <Lock className="w-4 h-4 text-amber-400" />
+      <div className="space-y-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
+        <h2 className="flex items-center gap-2 text-base font-bold text-white">
+          <Lock className="h-4 w-4 text-amber-400" />
           Pemetaan Akses Rute Berbasis Database
         </h2>
 
         <div className="space-y-4">
           {routeRules?.map((rule) => (
-            <form key={rule.id} action={updateRoutePermission} className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <form
+              key={rule.id}
+              action={updateRoutePermission}
+              className="flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4 md:flex-row"
+            >
               <input type="hidden" name="path_prefix" value={rule.path_prefix} />
               <div>
-                <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                <span className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 font-mono text-xs text-amber-400">
                   {rule.path_prefix}
                 </span>
-                <p className="text-xs text-slate-400 mt-2">Menentukan batas minimal role untuk mengakses direktori ini.</p>
+                <p className="mt-2 text-xs text-slate-400">
+                  Menentukan batas minimal role untuk mengakses direktori ini.
+                </p>
               </div>
 
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <select 
-                  name="required_role" 
+              <div className="flex w-full items-center gap-3 md:w-auto">
+                <select
+                  name="required_role"
                   defaultValue={rule.required_role}
-                  className="bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
                 >
                   {roles?.map((role) => (
                     <option key={role.id} value={role.id}>
@@ -65,8 +73,11 @@ export default async function AdminPermissionsPage() {
                   ))}
                 </select>
 
-                <button type="submit" className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 shrink-0">
-                  <Save className="w-3.5 h-3.5" />
+                <button
+                  type="submit"
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
+                >
+                  <Save className="h-3.5 w-3.5" />
                   Update
                 </button>
               </div>

@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { 
-  Building2, 
-  LayoutDashboard, 
-  Settings, 
-  Users, 
+import {
+  Building2,
+  LayoutDashboard,
+  Settings,
+  Users,
   Heart,
   Calendar,
   Calculator,
@@ -17,18 +17,34 @@ import {
   Bell,
   User,
   Shield,
-  LogOut, 
-  Menu, 
+  LogOut,
+  Menu,
   X,
   UserCheck,
   Info,
   Home,
   BarChart3,
-  Tag
+  Tag,
+  Sparkles,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-// Fungsi helper untuk menentukan menu berdasarkan role pengguna (disesuaikan dengan folder /dashboard/admin)
+// Helper untuk format nama label role di sidebar bottom
+const getRoleLabel = (role: string) => {
+  switch (role) {
+    case "admin":
+      return "Administrator";
+    case "smart_buyer":
+    case "smart-buyer":
+      return "Smart Buyer";
+    case "member":
+    default:
+      return "Member";
+  }
+};
+
+// Helper untuk menentukan konfigurasi navigasi berdasarkan role
 const getNavConfig = (role: string) => {
   switch (role) {
     case "admin":
@@ -41,13 +57,37 @@ const getNavConfig = (role: string) => {
           { name: "Manajemen Properti", path: "/dashboard/admin/properties", icon: Building2 },
           { name: "Pricing", path: "/dashboard/admin/pricing", icon: Tag },
           { name: "Pengaturan Sistem", path: "/dashboard/admin/settings", icon: Settings },
-        ]
+        ],
       };
+
+    // Role Terpisah: Smart Buyer
     case "smart_buyer":
-    default:
+    case "smart-buyer":
       return {
         dashboardName: "Smart Buyer Center",
         dashboardPath: "/dashboard/smart-buyer",
+        navItems: [
+          { name: "Favorit Saya", path: "/dashboard/smart-buyer/favorite", icon: Heart },
+          { name: "Jadwal Survey", path: "/dashboard/smart-buyer/survey", icon: Calendar },
+          { name: "Kalkulator KPR", path: "/dashboard/smart-buyer/calculator", icon: Calculator },
+          {
+            name: "Konsultasi Prioritas",
+            path: "/dashboard/smart-buyer/consultation",
+            icon: MessageSquare,
+          },
+          { name: "Riwayat Penawaran", path: "/dashboard/smart-buyer/history", icon: Clock },
+          { name: "Notifikasi", path: "/dashboard/smart-buyer/notification", icon: Bell },
+          { name: "Profil Saya", path: "/dashboard/smart-buyer/profile", icon: User },
+          { name: "Keamanan Akun", path: "/dashboard/smart-buyer/security", icon: Shield },
+        ],
+      };
+
+    // Role Default: Member
+    case "member":
+    default:
+      return {
+        dashboardName: "Member Center",
+        dashboardPath: "/dashboard/member",
         navItems: [
           { name: "Favorit", path: "/dashboard/member/favorite", icon: Heart },
           { name: "Survey", path: "/dashboard/member/survey", icon: Calendar },
@@ -58,7 +98,7 @@ const getNavConfig = (role: string) => {
           { name: "Notifikasi", path: "/dashboard/member/notification", icon: Bell },
           { name: "Profil", path: "/dashboard/member/profile", icon: User },
           { name: "Keamanan", path: "/dashboard/member/security", icon: Shield },
-        ]
+        ],
       };
   }
 };
@@ -81,53 +121,49 @@ function NotificationDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 rounded-2xl bg-card border border-border text-foreground hover:border-secondary transition-all cursor-pointer flex items-center justify-center shadow-xs"
+        className="bg-card border-border text-foreground hover:border-secondary relative flex cursor-pointer items-center justify-center rounded-2xl border p-2.5 shadow-xs transition-all"
         aria-label="Buka Notifikasi"
       >
-        <Bell className="w-4 h-4" />
-        <span className="absolute top-2 right-2 w-2 h-2 bg-secondary rounded-full ring-2 ring-card animate-pulse" />
+        <Bell className="h-4 w-4" />
+        <span className="bg-secondary ring-card absolute top-2 right-2 h-2 w-2 animate-pulse rounded-full ring-2" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-card border border-border rounded-3xl shadow-2xl shadow-black/30 z-50 overflow-hidden">
-          <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between bg-muted/30">
+        <div className="bg-card border-border absolute right-0 z-50 mt-3 w-80 overflow-hidden rounded-3xl border shadow-2xl shadow-black/30 sm:w-96">
+          <div className="border-border/60 bg-muted/30 flex items-center justify-between border-b px-5 py-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-bold font-heading uppercase tracking-wider text-foreground">
+              <h3 className="font-heading text-foreground text-xs font-bold tracking-wider uppercase">
                 Notifikasi
               </h3>
-              <span className="px-2 py-0.5 rounded-full bg-secondary/15 text-secondary text-[10px] font-semibold">
+              <span className="bg-secondary/15 text-secondary rounded-full px-2 py-0.5 text-[10px] font-semibold">
                 Baru
               </span>
             </div>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
-              className="text-[11px] text-muted-foreground hover:text-foreground transition cursor-pointer"
+              className="text-muted-foreground hover:text-foreground cursor-pointer text-[11px] transition"
             >
               Tandai semua dibaca
             </button>
           </div>
 
-          <div className="max-h-80 overflow-y-auto divide-y divide-border/40">
-            <div className="p-4 hover:bg-muted/50 transition flex gap-3.5 items-start">
-              <div className="p-2 bg-secondary/10 text-secondary rounded-xl shrink-0 mt-0.5">
-                <Info className="w-4 h-4" />
+          <div className="divide-border/40 max-h-80 divide-y overflow-y-auto">
+            <div className="hover:bg-muted/50 flex items-start gap-3.5 p-4 transition">
+              <div className="bg-secondary/10 text-secondary mt-0.5 shrink-0 rounded-xl p-2">
+                <Info className="h-4 w-4" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-bold text-foreground">
-                  Pembaruan Sistem Dashboard
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <p className="text-foreground text-xs font-bold">Pembaruan Sistem Dashboard</p>
+                <p className="text-muted-foreground text-[11px] leading-relaxed">
                   Navigasi modular dinamis berdasarkan role aktif digunakan.
                 </p>
-                <span className="text-[10px] text-muted-foreground/70 block pt-1">
-                  Baru saja
-                </span>
+                <span className="text-muted-foreground/70 block pt-1 text-[10px]">Baru saja</span>
               </div>
             </div>
           </div>
 
-          <div className="p-3 bg-muted/20 border-t border-border/60 text-center">
-            <span className="text-[11px] text-muted-foreground font-medium">
+          <div className="bg-muted/20 border-border/60 border-t p-3 text-center">
+            <span className="text-muted-foreground text-[11px] font-medium">
               Realthink Property Notification Center
             </span>
           </div>
@@ -137,23 +173,27 @@ function NotificationDropdown() {
   );
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [userRole, setUserRole] = useState<string>("smart_buyer");
+  const [userRole, setUserRole] = useState<string>("member");
   const supabase = createClient();
 
   useEffect(() => {
     async function fetchUserRole() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
-        // Mengambil role dari metadata user atau set default
-        const role = user.user_metadata?.role || "smart_buyer";
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        const role = profile?.role || user.user_metadata?.role || "member";
         setUserRole(role);
       }
     }
@@ -170,127 +210,125 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="h-screen w-full bg-background text-foreground flex overflow-hidden font-sans antialiased">
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-primary/40 backdrop-blur-xs z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50 w-64 bg-card border-r border-border 
-        flex flex-col justify-between p-6 transition-transform duration-300 ease-in-out shrink-0 overflow-y-auto
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}>
-        <div className="space-y-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Building2 className="w-7 h-7 text-secondary shrink-0" />
-            <span className="font-heading font-bold text-lg text-primary tracking-tight whitespace-nowrap">
-              Realthink <span className="text-secondary">Property</span>
-            </span>
-          </Link>
-
-          {/* Tombol Kembali ke Beranda Utama Website */}
-          <Link
-            href="/"
+    <QueryClientProvider client={queryClient}>
+      <div className="bg-background text-foreground flex h-screen w-full overflow-hidden font-sans antialiased">
+        {sidebarOpen && (
+          <div
+            className="bg-primary/40 fixed inset-0 z-40 backdrop-blur-xs lg:hidden"
             onClick={() => setSidebarOpen(false)}
-            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold bg-secondary/10 text-secondary border border-secondary/30 hover:bg-secondary/20 transition-all shadow-xs"
-          >
-            <Home className="w-4 h-4 text-secondary shrink-0" />
-            <span>Kembali ke Beranda</span>
-          </Link>
+          />
+        )}
 
-          {/* Menu Navigasi Utama (Dinamis Berdasarkan Role) */}
-          <nav className="space-y-1.5 pt-2">
-            <p className="px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
-              Menu Utama
-            </p>
-
-            {/* Tombol Dashboard Utama Khusus Role */}
-            <Link
-              href={dashboardPath}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                isDashboardActive
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/10"
-                  : "text-foreground hover:bg-muted hover:text-primary"
-              }`}
-            >
-              <LayoutDashboard className={`w-4 h-4 ${isDashboardActive ? "text-secondary" : "text-muted-foreground"}`} />
-              <span>{dashboardName}</span>
+        <aside
+          className={`bg-card border-border fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col justify-between overflow-y-auto border-r p-6 transition-transform duration-300 ease-in-out lg:static ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"} `}
+        >
+          <div className="space-y-6">
+            <Link href="/" className="flex items-center gap-2.5">
+              <Building2 className="text-secondary h-7 w-7 shrink-0" />
+              <span className="font-heading text-primary text-lg font-bold tracking-tight whitespace-nowrap">
+                Realthink <span className="text-secondary">Property</span>
+              </span>
             </Link>
 
-            {/* Sisa Menu Sesuai Role */}
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.path;
-
-              return (
-                <Link
-                  key={item.path}
-                  href={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-semibold transition-all ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/10"
-                      : "text-foreground hover:bg-muted hover:text-primary"
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-secondary" : "text-muted-foreground"}`} />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="pt-4 border-t border-border space-y-3 mt-6">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary font-bold text-xs">
-              <UserCheck className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-foreground truncate">Akun Terhubung</p>
-              <p className="text-[10px] font-medium text-secondary capitalize truncate">
-                {userRole.replace("_", " ")}
-              </p>
-            </div>
-          </div>
-
-          <button 
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-destructive hover:bg-destructive/10 transition cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Keluar Sesi</span>
-          </button>
-        </div>
-      </aside>
-
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <header className="h-16 shrink-0 bg-card border-b border-border px-6 flex items-center justify-between sticky top-0 z-30">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-muted text-foreground cursor-pointer"
+            <Link
+              href="/"
+              onClick={() => setSidebarOpen(false)}
+              className="bg-secondary/10 text-secondary border-secondary/30 hover:bg-secondary/20 flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-xs font-semibold shadow-xs transition-all"
             >
-              {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <Home className="text-secondary h-4 w-4 shrink-0" />
+              <span>Kembali ke Beranda</span>
+            </Link>
+
+            <nav className="space-y-1.5 pt-2">
+              <p className="text-muted-foreground mb-2 px-3 text-[10px] font-bold tracking-wider uppercase">
+                Menu Utama
+              </p>
+
+              <Link
+                href={dashboardPath}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold transition-all ${
+                  isDashboardActive
+                    ? "bg-primary text-primary-foreground shadow-primary/10 shadow-md"
+                    : "text-foreground hover:bg-muted hover:text-primary"
+                }`}
+              >
+                <LayoutDashboard
+                  className={`h-4 w-4 ${isDashboardActive ? "text-secondary" : "text-muted-foreground"}`}
+                />
+                <span>{dashboardName}</span>
+              </Link>
+
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.path;
+
+                return (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-xs font-semibold transition-all ${
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-primary/10 shadow-md"
+                        : "text-foreground hover:bg-muted hover:text-primary"
+                    }`}
+                  >
+                    <Icon
+                      className={`h-4 w-4 ${isActive ? "text-secondary" : "text-muted-foreground"}`}
+                    />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="border-border mt-6 space-y-3 border-t pt-4">
+            <div className="flex items-center gap-3 px-2">
+              <div className="bg-secondary/15 border-secondary/30 text-secondary flex h-9 w-9 items-center justify-center rounded-full border text-xs font-bold">
+                <UserCheck className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-foreground truncate text-xs font-bold">Akun Terhubung</p>
+                <p className="text-secondary truncate text-[10px] font-medium capitalize">
+                  {getRoleLabel(userRole)}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSignOut}
+              className="text-destructive hover:bg-destructive/10 flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Keluar Sesi</span>
             </button>
-            <h1 className="text-sm sm:text-base font-bold font-heading text-primary">
-              Panel Kendali
-            </h1>
           </div>
+        </aside>
 
-          <div className="flex items-center gap-3">
-            <NotificationDropdown />
-          </div>
-        </header>
+        <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="bg-card border-border sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b px-6">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="hover:bg-muted text-foreground cursor-pointer rounded-lg p-2 lg:hidden"
+              >
+                {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </button>
+              <h1 className="font-heading text-primary text-sm font-bold sm:text-base">
+                Panel Kendali
+              </h1>
+            </div>
 
-        <main className="flex-1 p-6 sm:p-8 overflow-y-auto">
-          {children}
-        </main>
+            <div className="flex items-center gap-3">
+              <NotificationDropdown />
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-y-auto p-6 sm:p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </QueryClientProvider>
   );
 }

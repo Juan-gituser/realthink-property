@@ -4,13 +4,9 @@ import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
-export default function MainLayoutWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function MainLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
+
   // Cek apakah halaman yang dibuka adalah area admin atau halaman masuk
   const isAdminArea = pathname?.startsWith("/admin");
   const isLogin = pathname === "/login";
