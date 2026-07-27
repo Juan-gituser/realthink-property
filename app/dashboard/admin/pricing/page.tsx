@@ -222,7 +222,7 @@ export default async function ExecutiveAdminDashboard() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ActivityTimeline activities={activities} />
+          <ActivityTimeline activities={activities} isLoading={false} />
         </div>
         <div className="flex flex-col justify-between rounded-3xl border border-slate-800 bg-[#1C2541]/70 p-6 shadow-xl backdrop-blur-xl">
           <div>

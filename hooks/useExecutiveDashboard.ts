@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 export interface ActivityItem {
   id: string;
-  type: "property_add" | "property_update" | "lead_new" | "survey_new" | "article_publish";
+  type: "property_added" | "property_updated" | "lead_new" | "survey_new" | "article_published" | "property_add" | "article_publish";
   title: string;
   description: string;
   timestamp: string;
@@ -63,7 +63,6 @@ export function useExecutiveDashboard() {
         .from("articles")
         .select("id, title, created_at");
       if (artError) {
-        // Jika tabel articles belum ada, handle dengan array kosong
         console.warn("Articles table might not exist yet:", artError.message);
       }
 
@@ -80,7 +79,7 @@ export function useExecutiveDashboard() {
       ) || [];
       const propertiesSold = soldProperties.length;
 
-      // Hitung Revenue Bulan Ini (dari properti yang terjual bulan ini)
+      // Hitung Revenue Bulan Ini
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       const monthlyRevenue = soldProperties
@@ -90,11 +89,10 @@ export function useExecutiveDashboard() {
         })
         .reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
 
-      // Conversion Rate: (Deal / Total Leads) * 100
+      // Conversion Rate
       const dealLeads = leads?.filter((l) => l.status?.toLowerCase() === "deal").length || 0;
       const conversionRate = totalLeads > 0 ? Number(((dealLeads / totalLeads) * 100).toFixed(1)) : 0;
 
-      // Mock Persentase Perubahan & Sparklines (Bisa disesuaikan dengan kalkulasi histori tanggal)
       const metrics: DashboardMetrics = {
         totalProperties,
         propertiesChange: 12.5,
@@ -122,7 +120,7 @@ export function useExecutiveDashboard() {
       const rawActivities: ActivityItem[] = [
         ...(properties || []).map((p) => ({
           id: `prop-add-${p.id}`,
-          type: "property_add" as const,
+          type: "property_added" as const,
           title: "Properti Baru Ditambahkan",
           description: p.title || "Properti baru terdaftar dalam sistem",
           timestamp: p.created_at,
@@ -143,24 +141,23 @@ export function useExecutiveDashboard() {
         })),
         ...((articles as Array<{ id: string; title: string; created_at: string }>) || []).map((a) => ({
           id: `art-${a.id}`,
-          type: "article_publish" as const,
+          type: "article_published" as const,
           title: "Artikel Dipublikasi",
           description: a.title,
           timestamp: a.created_at,
         })),
       ];
 
-      // Urutkan berdasarkan waktu terbaru
       rawActivities.sort(
         (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
       return {
         metrics,
-        activities: rawActivities.slice(0, 10), // Ambil 10 aktivitas terbaru
+        activities: rawActivities.slice(0, 10),
       };
     },
-    refetchInterval: 30000, // Auto-refresh tiap 30 detik
+    refetchInterval: 30000,
   });
 
   return { data, isLoading, error, refetch };

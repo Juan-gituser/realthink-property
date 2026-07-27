@@ -131,9 +131,11 @@ export default function CreateArticlePage() {
       alert("Artikel berhasil ditambahkan!");
       router.push("/admin/articles");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || "Terjadi kesalahan saat menyimpan artikel.");
+      const errorMessage =
+        err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan artikel.";
+      setErrorMsg(errorMessage);
     } finally {
       setLoading(false);
     }

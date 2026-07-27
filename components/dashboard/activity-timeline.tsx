@@ -13,7 +13,7 @@ export function ActivityTimeline({ activities, isLoading }: ActivityTimelineProp
   const getIcon = (type: ActivityItem["type"]) => {
     switch (type) {
       case "property_add":
-      case "property_update":
+      case "property_updated":
         return <Building className="h-4 w-4 text-amber-600" />;
       case "lead_new":
         return <UserPlus className="h-4 w-4 text-blue-600" />;

@@ -121,9 +121,11 @@ export default function CreatePropertyPage() {
       alert("Properti berhasil ditambahkan!");
       router.push("/admin/properties");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || "Terjadi kesalahan saat menyimpan properti.");
+      const errorMessage =
+        err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan properti.";
+      setErrorMsg(errorMessage);
     } finally {
       setLoading(false);
     }
