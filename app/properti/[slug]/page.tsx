@@ -16,34 +16,41 @@ async function incrementViewCount(propertyId: string) {
 async function getPropertyBySlug(slug: string) {
   const supabase = createClient();
 
-  const { data, error } = await supabase.from("properties").select("*").eq("slug", slug).single();
+  const { data, error } = await supabase
+    .from("properties")
+    .select("*")
+    .eq("slug", slug)
+    .single();
 
   if (error || !data) {
+    console.error("Gagal mengambil data properti:", error?.message);
     return null;
   }
 
-  // Mapping data database ke format komponen
+  // Mapping data database ke format props DetailPropertiClient
   return {
     id: String(data.id),
-    title: data.title,
+    title: data.title || "Tanpa Judul",
     slug: data.slug,
-    price: data.price,
-    rawPrice: data.raw_price || 0,
-    location: data.location || data.city,
-    city: data.city,
-    district: data.district || "",
-    bedrooms: data.bedrooms || 0,
-    bathrooms: data.bathrooms || 0,
-    landArea: data.land_area || 0,
-    buildingArea: data.building_area || 0,
+    price: data.price || data.raw_price || 0,
+    location:
+      data.location ||
+      [data.district, data.city].filter(Boolean).join(", ") ||
+      "Lokasi tidak spesifik",
+    address: data.address || "",
+    bedrooms: Number(data.bedrooms) || 0,
+    bathrooms: Number(data.bathrooms) || 0,
+    buildingArea: Number(data.building_area) || 0,
+    landArea: Number(data.land_area) || 0,
     imageUrl:
       data.image_url ||
       "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
     status: (data.status === "disewa" ? "disewa" : "dijual") as "dijual" | "disewa",
-    category: data.category || "Properti",
-    isFeatured: data.is_featured || false,
-    lat: data.lat || -6.2,
-    lng: data.lng || 106.8166,
+    category: data.category || "Rumah",
+    legality: data.legality || "SHM",
+    description: data.description || "Belum ada deskripsi rinci untuk properti ini.",
+    lat: Number(data.lat) || -6.2,
+    lng: Number(data.lng) || 106.8166,
     whatsapp: data.whatsapp || "6281234567890",
     phone: data.phone || "+6221555888",
     email: data.email || "info@properti.com",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -30,8 +30,17 @@ const LocationPickerMap = dynamic(
   }
 );
 
-export default function CreatePropertyPage() {
+export default function EditPropertyPage({
+  params,
+}: {
+  params: Promise<{ id: string }> | { id: string };
+}) {
+  // Support Async Params pada Next.js 15+
+  const resolvedParams = params instanceof Promise ? use(params) : params;
+  const id = resolvedParams.id;
+
   const router = useRouter();
+  const [fetching, setFetching] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -41,19 +50,19 @@ export default function CreatePropertyPage() {
   const [status, setStatus] = useState<"dijual" | "disewa">("dijual");
   const [category, setCategory] = useState("Rumah");
   const [legality, setLegality] = useState("SHM");
-  
+
   // Alamat State
   const [address, setAddress] = useState("");
   const [province, setProvince] = useState("");
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
-  
+
   // Spesifikasi State
   const [bedrooms, setBedrooms] = useState<number | "">("");
   const [bathrooms, setBathrooms] = useState<number | "">("");
   const [landArea, setLandArea] = useState<number | "">("");
   const [buildingArea, setBuildingArea] = useState<number | "">("");
-  
+
   const [description, setDescription] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
 
@@ -61,9 +70,68 @@ export default function CreatePropertyPage() {
   const [lat, setLat] = useState<number>(-6.2); // Default Jakarta
   const [lng, setLng] = useState<number>(106.816666);
 
-  // State untuk Multiple Files & Previews
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  // State untuk Foto Eksisting (yang sudah di-upload sebelumnya)
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+
+  // State untuk Foto Baru (Multiple Files & Previews)
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+
+  // 🟢 1. Fetch Data Properti Awal berdasarkan ID
+  useEffect(() => {
+    async function fetchProperty() {
+      try {
+        setFetching(true);
+        const { data, error } = await supabase
+          .from("properties")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setTitle(data.title || "");
+          setDisplayPrice(
+            data.price ? new Intl.NumberFormat("id-ID").format(Number(data.price)) : ""
+          );
+          setStatus(data.status || "dijual");
+          setCategory(data.category || "Rumah");
+          setLegality(data.legality || "SHM");
+
+          setAddress(data.address || "");
+          setProvince(data.province || "");
+          setCity(data.city || "");
+          setDistrict(data.district || "");
+
+          setBedrooms(data.bedrooms ?? "");
+          setBathrooms(data.bathrooms ?? "");
+          setLandArea(data.land_area ?? data.land_size ?? "");
+          setBuildingArea(data.building_area ?? data.building_size ?? "");
+
+          setDescription(data.description || "");
+          setIsFeatured(data.is_featured || false);
+
+          if (data.lat) setLat(Number(data.lat));
+          if (data.lng) setLng(Number(data.lng));
+
+          // Set foto eksisting
+          const imgs = Array.isArray(data.images) && data.images.length > 0
+            ? data.images
+            : data.image_url
+            ? [data.image_url]
+            : [];
+          setExistingImages(imgs);
+        }
+      } catch (err: any) {
+        setErrorMsg(err?.message || "Gagal memuat data properti.");
+      } finally {
+        setFetching(false);
+      }
+    }
+
+    if (id) fetchProperty();
+  }, [id]);
 
   // 🟢 Helper untuk auto-format titik ribuan pada Harga
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,32 +158,41 @@ export default function CreatePropertyPage() {
     setLng(newLng);
   };
 
+  // Handler untuk Tambah File Foto Baru
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
 
-    setImageFiles((prev) => [...prev, ...filesArray]);
+    setNewImageFiles((prev) => [...prev, ...filesArray]);
 
     const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
-    setImagePreviews((prev) => [...prev, ...newPreviews]);
+    setNewImagePreviews((prev) => [...prev, ...newPreviews]);
   };
 
-  const handleRemoveImage = (index: number) => {
-    if (imagePreviews[index]) {
-      URL.revokeObjectURL(imagePreviews[index]);
+  // Handler Hapus Foto Eksisting
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Handler Hapus Foto Baru
+  const handleRemoveNewImage = (index: number) => {
+    if (newImagePreviews[index]) {
+      URL.revokeObjectURL(newImagePreviews[index]);
     }
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // 🟢 2. Submit Handler Update Properti
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
 
     try {
-      if (imageFiles.length === 0) {
-        throw new Error("Silakan pilih minimal satu foto utama properti terlebih dahulu.");
+      const totalImages = existingImages.length + newImageFiles.length;
+      if (totalImages === 0) {
+        throw new Error("Silakan pilih minimal satu foto utama properti.");
       }
 
       // Clean harga dari titik untuk disimpan di Database
@@ -126,10 +203,10 @@ export default function CreatePropertyPage() {
         .filter(Boolean)
         .join(", ") || address;
 
-      const uploadedUrls: string[] = [];
+      const newlyUploadedUrls: string[] = [];
 
-      // 1. Upload foto ke Supabase Storage
-      for (const file of imageFiles) {
+      // Upload Foto-Foto Baru ke Supabase Storage (jika ada)
+      for (const file of newImageFiles) {
         const fileExt = file.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `listings/${fileName}`;
@@ -144,22 +221,27 @@ export default function CreatePropertyPage() {
           .from("properties")
           .getPublicUrl(filePath);
 
-        uploadedUrls.push(publicUrlData.publicUrl);
+        newlyUploadedUrls.push(publicUrlData.publicUrl);
       }
 
-      // 2. Buat slug unik
+      // Gabungkan Foto Eksisting + Foto Baru
+      const finalImages = [...existingImages, ...newlyUploadedUrls];
+      const mainImageUrl = finalImages[0] || "";
+
+      // Regenerate slug jika judul diperbarui
       const slug = `${generateSlug(title)}-${Date.now().toString().slice(-4)}`;
 
-      // 3. Insert ke DB
-      const { error: dbError } = await supabase.from("properties").insert([
-        {
+      // Update Data ke Database Supabase
+      const { error: dbError } = await supabase
+        .from("properties")
+        .update({
           title,
           slug,
           price: rawPrice,
           status,
           category,
           legality,
-          location: locationRingkas, // Auto generated lokasi ringkas
+          location: locationRingkas,
           address,
           province,
           city,
@@ -171,15 +253,16 @@ export default function CreatePropertyPage() {
           land_area: Number(landArea) || 0,
           building_area: Number(buildingArea) || 0,
           description,
-          image_url: uploadedUrls[0],
-          images: uploadedUrls,
+          image_url: mainImageUrl,
+          images: finalImages,
           is_featured: isFeatured,
-        },
-      ]);
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", id);
 
       if (dbError) throw dbError;
 
-      alert("Properti berhasil ditambahkan!");
+      alert("Properti berhasil diperbarui!");
       router.push("/admin/properties");
       router.refresh();
     } catch (err: any) {
@@ -193,11 +276,20 @@ export default function CreatePropertyPage() {
           : String(err));
 
       console.error(`Detail Error Lengkap: ${actualErrorMsg}`);
-      setErrorMsg(actualErrorMsg || "Terjadi kesalahan saat menyimpan properti.");
+      setErrorMsg(actualErrorMsg || "Terjadi kesalahan saat memperbarui properti.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetching) {
+    return (
+      <div className="flex h-96 w-full items-center justify-center text-xs text-gray-500 font-medium">
+        <Loader2 className="mr-2 h-6 w-6 animate-spin text-amber-500" />
+        Memuat data properti...
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-12">
@@ -215,8 +307,9 @@ export default function CreatePropertyPage() {
               Manajemen Properti
             </span>
             <h1 className="font-heading text-2xl font-bold text-gray-900">
-              Tambah Properti Baru
+              Edit Properti
             </h1>
+            <p className="text-xs text-gray-400">ID Properti: {id}</p>
           </div>
         </div>
       </div>
@@ -227,7 +320,7 @@ export default function CreatePropertyPage() {
         </div>
       )}
 
-      {/* Form Tambah Properti */}
+      {/* Form Edit Properti */}
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* SEKSI 1: INFORMASI UTAMA & SPESIFIKASI */}
@@ -331,7 +424,7 @@ export default function CreatePropertyPage() {
 
           {/* Sub-Seksi Spesifikasi Fisik */}
           <div className="pt-2 border-t border-gray-100">
-            <label className="mb-3 text-gray-800 flex items-center gap-1.5">
+            <label className="mb-3 text-gray-800 flex items-center gap-1.5 text-xs font-bold">
               <Ruler className="h-4 w-4 text-amber-500" /> Spesifikasi Fisik
             </label>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -517,11 +610,12 @@ export default function CreatePropertyPage() {
                 Galeri Foto Properti
               </h2>
               <p className="text-xs text-gray-500">
-                Pilih beberapa foto sekaligus. Foto pertama otomatis menjadi foto sampul utama.
+                Kelola foto yang tersimpan atau tambahkan foto baru. Foto pertama otomatis menjadi foto sampul utama.
               </p>
             </div>
           </div>
 
+          {/* Upload Area */}
           <div>
             <label className="flex flex-col items-center justify-center cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-6 text-center transition hover:bg-gray-100/50">
               <div className="flex flex-col items-center space-y-2">
@@ -529,7 +623,7 @@ export default function CreatePropertyPage() {
                   <ImagePlus className="h-6 w-6" />
                 </div>
                 <p className="text-xs font-bold text-gray-700">
-                  Klik untuk pilih foto atau seret file ke sini
+                  Klik untuk tambah foto baru atau seret file ke sini
                 </p>
                 <p className="text-[10px] text-gray-400">
                   PNG, JPG, JPEG (Bisa pilih lebih dari satu)
@@ -545,20 +639,23 @@ export default function CreatePropertyPage() {
             </label>
           </div>
 
-          {imagePreviews.length > 0 && (
-            <div className="space-y-2">
+          {/* Previews Foto (Eksisting & Baru) */}
+          {(existingImages.length > 0 || newImagePreviews.length > 0) && (
+            <div className="space-y-3">
               <p className="text-xs font-bold text-gray-700">
-                Foto Terpilih ({imagePreviews.length}):
+                Semua Foto ({existingImages.length + newImagePreviews.length}):
               </p>
+              
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {imagePreviews.map((src, index) => (
+                {/* 1. Render Foto Eksisting yang Sudah Ada */}
+                {existingImages.map((src, index) => (
                   <div
-                    key={index}
+                    key={`existing-${index}`}
                     className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shadow-xs"
                   >
                     <img
                       src={src}
-                      alt={`Preview ${index}`}
+                      alt={`Foto Eksisting ${index}`}
                       className="h-full w-full object-cover"
                     />
                     {index === 0 && (
@@ -568,13 +665,45 @@ export default function CreatePropertyPage() {
                     )}
                     <button
                       type="button"
-                      onClick={() => handleRemoveImage(index)}
+                      onClick={() => handleRemoveExistingImage(index)}
                       className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700 cursor-pointer"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
+
+                {/* 2. Render Preview Foto Baru */}
+                {newImagePreviews.map((src, index) => {
+                  const globalIndex = existingImages.length + index;
+                  return (
+                    <div
+                      key={`new-${index}`}
+                      className="relative group aspect-square rounded-xl overflow-hidden border-2 border-amber-400 bg-gray-100 shadow-xs"
+                    >
+                      <img
+                        src={src}
+                        alt={`Preview Baru ${index}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <span className="absolute top-2 left-2 rounded bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                        Baru
+                      </span>
+                      {globalIndex === 0 && (
+                        <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                          Utama
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNewImage(index)}
+                        className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700 cursor-pointer"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -611,7 +740,7 @@ export default function CreatePropertyPage() {
             ) : (
               <>
                 <Save className="h-4 w-4 text-amber-400" />
-                Simpan Properti
+                Simpan Perubahan
               </>
             )}
           </button>

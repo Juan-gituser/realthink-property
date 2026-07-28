@@ -47,6 +47,15 @@ interface SupabasePropertyRow {
   image_url?: string;
 }
 
+// Helper untuk format angka ke Rupiah
+const formatRupiah = (amount: number | string) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(amount) || 0);
+};
+
 export default function AdminPropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -55,11 +64,10 @@ export default function AdminPropertiesPage() {
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const supabase = createClient();
-
-  // Mengambil data di dalam useEffect tanpa memanggil setLoading(true) di awal
+  // Mengambil data dari Supabase
   useEffect(() => {
     let isMounted = true;
+    const supabase = createClient();
 
     const fetchProperties = async () => {
       try {
@@ -110,7 +118,7 @@ export default function AdminPropertiesPage() {
     return () => {
       isMounted = false;
     };
-  }, [supabase]);
+  }, []);
 
   // Filter Data
   const filteredProperties = useMemo(() => {
@@ -128,9 +136,10 @@ export default function AdminPropertiesPage() {
     });
   }, [properties, searchQuery, selectedListingStatus, selectedCategory]);
 
-  // Handler Hapus Properti dari Supabase
+  // Handler Hapus Properti
   const handleDelete = async (id: string) => {
     try {
+      const supabase = createClient();
       const { error } = await supabase.from("properties").delete().eq("id", id);
 
       if (error) {
@@ -145,8 +154,9 @@ export default function AdminPropertiesPage() {
     }
   };
 
-  // Handler Toggle Status Unggulan (Featured) di Supabase
+  // Handler Toggle Status Unggulan (Featured)
   const handleToggleFeatured = async (propertyId: string, currentStatus: boolean) => {
+    const supabase = createClient();
     const { error } = await supabase
       .from("properties")
       .update({ is_featured: !currentStatus })
@@ -183,7 +193,7 @@ export default function AdminPropertiesPage() {
         </div>
         <Link
           href="/admin/properties/create"
-          className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition"
+          className="bg-primary hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition"
         >
           <Plus className="h-4 w-4" /> Tambah Properti Baru
         </Link>
@@ -191,7 +201,7 @@ export default function AdminPropertiesPage() {
 
       {/* Ringkasan Cards */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-xs">
           <div className="rounded-lg bg-blue-50 p-2.5 text-blue-600">
             <Building2 className="h-5 w-5" />
           </div>
@@ -201,7 +211,7 @@ export default function AdminPropertiesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-xs">
           <div className="rounded-lg bg-emerald-50 p-2.5 text-emerald-600">
             <CheckCircle2 className="h-5 w-5" />
           </div>
@@ -211,7 +221,7 @@ export default function AdminPropertiesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-xs">
           <div className="rounded-lg bg-amber-50 p-2.5 text-amber-600">
             <Clock className="h-5 w-5" />
           </div>
@@ -221,7 +231,7 @@ export default function AdminPropertiesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-xs">
           <div className="rounded-lg bg-rose-50 p-2.5 text-rose-600">
             <Ban className="h-5 w-5" />
           </div>
@@ -233,7 +243,7 @@ export default function AdminPropertiesPage() {
       </div>
 
       {/* Panel Filter */}
-      <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-xs">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           {/* Search */}
           <div className="relative">
@@ -243,7 +253,7 @@ export default function AdminPropertiesPage() {
               placeholder="Cari judul properti atau kota..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border py-2 pr-3 pl-9 text-sm outline-none focus:ring-1"
+              className="focus:ring-secondary w-full rounded-lg border py-2 pr-3 pl-9 text-sm outline-hidden focus:ring-1"
             />
           </div>
 
@@ -252,7 +262,7 @@ export default function AdminPropertiesPage() {
             <select
               value={selectedListingStatus}
               onChange={(e) => setSelectedListingStatus(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:ring-1"
+              className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-hidden focus:ring-1"
             >
               <option value="Semua">Semua Status Listing</option>
               <option value="published">Published</option>
@@ -266,7 +276,7 @@ export default function AdminPropertiesPage() {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:ring-1"
+              className="focus:ring-secondary w-full rounded-lg border bg-white px-3 py-2 text-sm outline-hidden focus:ring-1"
             >
               <option value="Semua">Semua Kategori</option>
               <option value="Rumah">Rumah</option>
@@ -279,7 +289,7 @@ export default function AdminPropertiesPage() {
       </div>
 
       {/* Tabel Data Properti */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <thead>
@@ -322,7 +332,7 @@ export default function AdminPropertiesPage() {
                           </p>
                           <p className="text-xs text-gray-500">{property.city}</p>
 
-                          {/* Toggle Featured Button Interaktif */}
+                          {/* Toggle Featured Button */}
                           <button
                             onClick={() => handleToggleFeatured(property.id, property.isFeatured)}
                             className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition ${
@@ -353,7 +363,7 @@ export default function AdminPropertiesPage() {
 
                     {/* Price */}
                     <td className="p-4 font-semibold whitespace-nowrap text-gray-900">
-                      {property.price}
+                      {formatRupiah(property.price)}
                     </td>
 
                     {/* Listing Status Badge */}
@@ -391,14 +401,14 @@ export default function AdminPropertiesPage() {
                           href={`/properti/${property.slug}`}
                           target="_blank"
                           title="Lihat di situs"
-                          className="hover:text-primary rounded-lg p-2 text-gray-500 transition hover:bg-gray-150"
+                          className="hover:text-primary rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
 
-                        {/* Edit */}
+                        {/* Edit (🟢 URL Disesuaikan dengan struktur Next.js) */}
                         <Link
-                          href={`/admin/properties/edit/${property.id}`}
+                          href={`/admin/properties/${property.id}/edit`}
                           title="Edit Properti"
                           className="rounded-lg p-2 text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
                         >
@@ -447,7 +457,7 @@ export default function AdminPropertiesPage() {
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-rose-700"
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-rose-700"
               >
                 Hapus
               </button>

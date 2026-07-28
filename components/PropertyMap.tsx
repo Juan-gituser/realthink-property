@@ -13,20 +13,25 @@ interface PropertyMapProps {
 
 export default function PropertyMap({ lat, lng, address, title }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // Inisialisasi Peta
-    const map = L.map(mapRef.current).setView([lat, lng], 15);
+    // Bersihkan instance lama jika ada
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
-    // Tile Layer OpenStreetMap
+    const map = L.map(mapRef.current).setView([lat, lng], 15);
+    mapInstanceRef.current = map;
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
-    // Custom Marker Icon
     const customIcon = L.divIcon({
       className: "custom-map-marker",
       html: `<div style="background-color: #d97706; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.25); font-size: 16px;">🏠</div>`,
@@ -34,7 +39,6 @@ export default function PropertyMap({ lat, lng, address, title }: PropertyMapPro
       iconAnchor: [18, 18],
     });
 
-    // Tambahkan Marker ke Peta
     L.marker([lat, lng], { icon: customIcon })
       .addTo(map)
       .bindPopup(
@@ -42,8 +46,16 @@ export default function PropertyMap({ lat, lng, address, title }: PropertyMapPro
       )
       .openPopup();
 
+    // Memastikan peta merender ukurannya secara sempurna
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
     return () => {
-      map.remove();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
   }, [lat, lng, address, title]);
 
@@ -55,7 +67,8 @@ export default function PropertyMap({ lat, lng, address, title }: PropertyMapPro
       </div>
       <div
         ref={mapRef}
-        className="h-95[380px] relative z-0 w-full overflow-hidden rounded-2xl border border-gray-200 shadow-sm"
+        style={{ height: "380px", width: "100%" }}
+        className="relative z-0 overflow-hidden rounded-2xl border border-gray-200 shadow-sm"
       />
     </div>
   );

@@ -19,6 +19,7 @@ import {
   LogIn,
   User,
   Shield,
+  Tag,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -28,7 +29,7 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [premiumDropdownOpen, setPremiumDropdownOpen] = useState(false);
 
-  // State untuk menyimpan data user login & status admin menggunakan tipe Supabase
+  // State untuk menyimpan data user login & status admin
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -43,14 +44,14 @@ export default function Navbar() {
         return;
       }
 
-      // 1. Cek role dari user_metadata terlebih dahulu
+      // 1. Cek role dari user_metadata
       const metadataRole = currentUser.user_metadata?.role;
       if (metadataRole === "admin" || metadataRole === "super_admin") {
         setIsAdmin(true);
         return;
       }
 
-      // 2. Jika tidak ada di metadata, cek dari tabel profiles di database
+      // 2. Jika tidak ada di metadata, cek dari tabel profiles
       try {
         const { data: profile } = await supabase
           .from("profiles")
@@ -78,7 +79,7 @@ export default function Navbar() {
 
     getInitialUser();
 
-    // Listener real-time saat status auth berubah (login/logout)
+    // Listener real-time status auth
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       await checkUserAndRole(session?.user ?? null);
     });
@@ -88,7 +89,7 @@ export default function Navbar() {
     };
   }, [supabase]);
 
-  // Jika sedang di halaman auth atau halaman admin, Navbar tidak dirender
+  // Sembunyikan Navbar jika di halaman auth atau admin
   const isAuthPage = pathname === "/login" || pathname === "/daftar";
   const isAdminPage = pathname?.startsWith("/admin");
 
@@ -98,28 +99,38 @@ export default function Navbar() {
 
   return (
     <header className="border-border fixed top-0 z-50 w-full border-b bg-white/80 shadow-sm backdrop-blur-md">
-      <div className="container mx-auto flex h-20 items-center justify-between px-4">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4 lg:px-8">
+        
         {/* Logo Area */}
-        <Link href="/" className="group flex items-center gap-2">
+        <Link href="/" className="group flex shrink-0 items-center gap-2">
           <Building2 className="text-secondary group-hover:text-primary h-8 w-8 transition-colors" />
           <span className="font-heading text-primary text-xl font-bold">
             Realthink <span className="text-secondary">Property</span>
           </span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-6 text-[13px] font-medium md:flex">
-          <Link href="/" className="text-foreground hover:text-secondary transition-colors">
+        {/* Desktop Nav - Disesuaikan jarak gap & text size agar proporsional */}
+        <nav className="hidden items-center gap-3.5 text-xs font-medium lg:flex xl:gap-5 xl:text-[13px]">
+          <Link href="/" className="text-foreground hover:text-secondary whitespace-nowrap transition-colors">
             Beranda
           </Link>
-          <Link href="/properti" className="text-foreground hover:text-secondary transition-colors">
+          <Link href="/properti" className="text-foreground hover:text-secondary whitespace-nowrap transition-colors">
             Katalog Properti
           </Link>
           <Link
             href="/titip-properti"
-            className="text-foreground hover:text-secondary transition-colors"
+            className="text-foreground hover:text-secondary whitespace-nowrap transition-colors"
           >
             Titip Properti
+          </Link>
+
+          {/* Menu Pricing / Paket Harga */}
+          <Link
+            href="/pricing"
+            className="text-foreground hover:text-secondary flex items-center gap-1.5 whitespace-nowrap transition-colors"
+          >
+            <Tag className="h-3.5 w-3.5 text-amber-500" />
+            <span>Pricing</span>
           </Link>
 
           {/* Dropdown Fitur Premium */}
@@ -127,9 +138,9 @@ export default function Navbar() {
             <button
               onMouseEnter={() => setPremiumDropdownOpen(true)}
               onClick={() => setPremiumDropdownOpen(!premiumDropdownOpen)}
-              className="text-foreground hover:text-secondary flex cursor-pointer items-center gap-1.5 py-2 transition-colors"
+              className="text-foreground hover:text-secondary flex cursor-pointer items-center gap-1 py-2 whitespace-nowrap transition-colors"
             >
-              <Sparkles className="h-4 w-4 text-amber-500" />
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
               <span>Fitur Premium</span>
               <ChevronDown
                 className={`h-3.5 w-3.5 transition-transform ${premiumDropdownOpen ? "rotate-180" : ""}`}
@@ -190,7 +201,7 @@ export default function Navbar() {
             <button
               onMouseEnter={() => setDropdownOpen(true)}
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="text-foreground hover:text-secondary flex cursor-pointer items-center gap-1 py-2 transition-colors"
+              className="text-foreground hover:text-secondary flex cursor-pointer items-center gap-1 py-2 whitespace-nowrap transition-colors"
             >
               Tools Properti{" "}
               <ChevronDown
@@ -269,24 +280,24 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
 
-          <Link href="/artikel" className="text-foreground hover:text-secondary transition-colors">
-            Artikel & Berita
+          <Link href="/artikel" className="text-foreground hover:text-secondary whitespace-nowrap transition-colors">
+            Artikel
           </Link>
           <Link
             href="/tentang-kami"
-            className="text-foreground hover:text-secondary transition-colors"
+            className="text-foreground hover:text-secondary whitespace-nowrap transition-colors"
           >
             Tentang Kami
           </Link>
         </nav>
 
-        {/* Tombol Auth / Panel Admin Desktop (Dinamis) */}
-        <div className="hidden items-center md:flex">
+        {/* Tombol Auth / Panel Admin Desktop */}
+        <div className="hidden shrink-0 items-center lg:flex">
           {user ? (
             isAdmin ? (
               <Link
                 href="/admin"
-                className="flex cursor-pointer items-center gap-2 rounded-full border border-amber-500/40 bg-slate-900 px-5 py-2 text-xs font-semibold tracking-wide text-white shadow-sm transition-all duration-300 hover:bg-slate-800 hover:shadow-md"
+                className="flex cursor-pointer items-center gap-2 rounded-full border border-amber-500/40 bg-slate-900 px-4 py-2 text-xs font-semibold tracking-wide text-white shadow-sm transition-all duration-300 hover:bg-slate-800 hover:shadow-md"
               >
                 <Shield className="h-3.5 w-3.5 text-amber-400" />
                 <span>Panel Admin</span>
@@ -294,7 +305,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/dashboard/member"
-                className="bg-primary hover:bg-primary/90 flex cursor-pointer items-center gap-2 rounded-full px-5 py-2 text-xs font-semibold tracking-wide text-white shadow-sm transition-all duration-300 hover:shadow-md"
+                className="bg-primary hover:bg-primary/90 flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold tracking-wide text-white shadow-sm transition-all duration-300 hover:shadow-md"
               >
                 <User className="h-3.5 w-3.5" />
                 <span>Dashboard Member</span>
@@ -303,7 +314,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="text-primary bg-primary/5 border-primary/15 hover:bg-primary group flex cursor-pointer items-center gap-2 rounded-full border px-5 py-2 text-xs font-semibold tracking-wide shadow-sm transition-all duration-300 hover:border-transparent hover:text-white hover:shadow-md"
+              className="text-primary bg-primary/5 border-primary/15 hover:bg-primary group flex cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold tracking-wide shadow-sm transition-all duration-300 hover:border-transparent hover:text-white hover:shadow-md"
             >
               <LogIn className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               <span>Masuk</span>
@@ -313,7 +324,7 @@ export default function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          className="text-foreground cursor-pointer p-2 md:hidden"
+          className="text-foreground cursor-pointer p-2 lg:hidden"
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle Menu"
         >
@@ -328,7 +339,7 @@ export default function Navbar() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="border-border absolute top-20 left-0 max-h-[calc(100vh-5rem)] w-full overflow-y-auto border-b bg-white py-4 shadow-lg md:hidden"
+            className="border-border absolute top-20 left-0 max-h-[calc(100vh-5rem)] w-full overflow-y-auto border-b bg-white py-4 shadow-lg lg:hidden"
           >
             <div className="container mx-auto flex flex-col gap-2 px-4 text-sm">
               <Link
@@ -351,6 +362,20 @@ export default function Navbar() {
                 onClick={() => setIsOpen(false)}
               >
                 Titip Properti
+              </Link>
+              
+              {/* Pricing Mobile Link */}
+              <Link
+                href="/pricing"
+                className="text-foreground hover:text-secondary border-border/50 flex items-center justify-between border-b py-2 font-medium"
+                onClick={() => setIsOpen(false)}
+              >
+                <span className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-amber-500" /> Pricing
+                </span>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                  Paket
+                </span>
               </Link>
 
               {/* Sub-menu Fitur Premium untuk Mobile */}
@@ -424,7 +449,7 @@ export default function Navbar() {
                 Tentang Kami
               </Link>
 
-              {/* Tombol Auth / Panel Admin Mobile (Dinamis) */}
+              {/* Tombol Auth / Panel Admin Mobile */}
               {user ? (
                 isAdmin ? (
                   <Link
