@@ -94,7 +94,7 @@ export default function PremiumGuard({ children }: PremiumGuardProps) {
                     <LogIn className="h-4 w-4" /> Masuk / Login
                   </button>
                   <button
-                    onClick={() => router.push("/register")}
+                    onClick={() => router.push("/daftar")}
                     className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                   >
                     <UserPlus className="h-4 w-4" /> Belum punya akun? Daftar
