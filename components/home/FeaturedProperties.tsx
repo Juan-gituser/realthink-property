@@ -1,11 +1,11 @@
 "use client";
 
-import PropertyCard, { PropertyProps } from "@/components/shared/PropertyCard";
+import PropertyCard, { type PropertyData } from "@/components/shared/PropertyCard";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 // Dummy Data untuk tahap inisialisasi / preview mandiri
-const dummyFeatured: PropertyProps[] = [
+const dummyFeatured: PropertyData[] = [
   {
     id: "1",
     title: "Rumah Mewah Modern Minimalis di BSD City",
@@ -54,7 +54,7 @@ const dummyFeatured: PropertyProps[] = [
 ];
 
 interface FeaturedPropertiesProps {
-  properties?: PropertyProps[];
+  properties?: PropertyData[];
 }
 
 export default function FeaturedProperties({ properties }: FeaturedPropertiesProps) {

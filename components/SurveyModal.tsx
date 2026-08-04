@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { X, Calendar, Clock, Users, User, Phone, Mail, FileText, CheckCircle2, Loader2 } from "lucide-react";
+import {
+  X,
+  Calendar,
+  Clock,
+  Users,
+  User,
+  Phone,
+  Mail,
+  FileText,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface SurveyModalProps {
@@ -19,6 +30,7 @@ export default function SurveyModal({
   propertyTitle,
   onSubmitSuccess,
 }: SurveyModalProps) {
+  // Form State
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
@@ -26,16 +38,42 @@ export default function SurveyModal({
   const [surveyTime, setSurveyTime] = useState("");
   const [numPeople, setNumPeople] = useState("1");
   const [notes, setNotes] = useState("");
+
+  // Status & Feedback State
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const [successMessage, setSuccessMessage] = useState(false);
 
   if (!isOpen) return null;
 
+  const resetForm = () => {
+    setFullName("");
+    setWhatsapp("");
+    setEmail("");
+    setSurveyDate("");
+    setSurveyTime("");
+    setNumPeople("1");
+    setNotes("");
+    setErrorMsg("");
+    setSuccessMessage(false);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg("");
 
     try {
+      if (!fullName || !whatsapp || !surveyDate || !surveyTime) {
+        throw new Error("Harap isi semua kolom yang wajib (*)");
+      }
+
+      // Simpan data ke tabel 'property_surveys'
       const { error } = await supabase.from("property_surveys").insert([
         {
           property_id: propertyId,
@@ -51,7 +89,10 @@ export default function SurveyModal({
         },
       ]);
 
-      if (error) throw error;
+      // Jika ada error dari Supabase, lempar pesan error spesifiknya
+      if (error) {
+        throw new Error(error.message || "Gagal menyimpan data ke Supabase.");
+      }
 
       setSuccessMessage(true);
 
@@ -60,153 +101,201 @@ export default function SurveyModal({
       }
 
       setTimeout(() => {
-        setSuccessMessage(false);
-        onClose();
-        setFullName("");
-        setWhatsapp("");
-        setEmail("");
-        setSurveyDate("");
-        setSurveyTime("");
-        setNumPeople("1");
-        setNotes("");
-      }, 2500);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      alert("Gagal mengirim jadwal survei: " + errorMessage);
+        handleClose();
+      }, 2000);
+    } catch (err: unknown) {
+      // Ambil pesan error dengan aman
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" && err !== null && "message" in err
+          ? String((err as { message: unknown }).message)
+          : "Terjadi kesalahan saat mengirim jadwal survei.";
+
+      console.error("Gagal mengirim survei:", message, err);
+      setErrorMsg(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        <h3 className="mb-1 text-lg font-bold text-gray-900">
-          Jadwalkan Survei
-        </h3>
-        <p className="mb-4 text-xs text-gray-500">{propertyTitle}</p>
-
-        {successMessage ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center space-y-3">
-            <CheckCircle2 className="h-12 w-12 text-green-600" />
-            <h4 className="text-base font-bold text-gray-900">Berhasil Mengirim Jadwal Survei!</h4>
-            <p className="text-xs text-gray-500">Permintaan Anda sedang diproses. Mohon tunggu sebentar.</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+      {/* Container Modal */}
+      <div className="relative flex w-full max-w-lg max-h-[90vh] flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
+        
+        {/* HEADER MODAL */}
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-white sticky top-0 z-10 shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Jadwalkan Survei</h2>
+            <p className="text-xs font-medium text-gray-500 truncate max-w-70[280px] sm:max-w-xs">
+              {propertyTitle}
+            </p>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                <User className="h-3.5 w-3.5 text-amber-600" /> Nama Lengkap
-              </label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Masukkan nama lengkap Anda"
-                className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              />
-            </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* ISI FORM */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {successMessage ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
+              <CheckCircle2 className="h-12 w-12 text-emerald-600 animate-bounce" />
+              <h4 className="text-base font-bold text-gray-900">
+                Berhasil Mengirim Jadwal Survei!
+              </h4>
+              <p className="text-xs text-gray-500">
+                Permintaan Anda sedang diproses. Tim kami akan segera menghubungi Anda.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Notifikasi Error */}
+              {errorMsg && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
+                  ⚠️ {errorMsg}
+                </div>
+              )}
+
+              {/* Nama Lengkap */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                  <Phone className="h-3.5 w-3.5 text-amber-600" /> WhatsApp
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                  <User className="h-3.5 w-3.5 text-amber-600" />
+                  Nama Lengkap <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="08123456789"
-                  className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  disabled={loading}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Contoh: Juan"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
                 />
               </div>
+
+              {/* WhatsApp & Email */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                    <Phone className="h-3.5 w-3.5 text-amber-600" />
+                    WhatsApp <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    disabled={loading}
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    placeholder="085717312516"
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                    <Mail className="h-3.5 w-3.5 text-amber-600" />
+                    Email (Opsional)
+                  </label>
+                  <input
+                    type="email"
+                    disabled={loading}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Tanggal & Waktu Survei */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                    <Calendar className="h-3.5 w-3.5 text-amber-600" />
+                    Tanggal Survei <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    disabled={loading}
+                    value={surveyDate}
+                    onChange={(e) => setSurveyDate(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                    <Clock className="h-3.5 w-3.5 text-amber-600" />
+                    Waktu Survei <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    disabled={loading}
+                    value={surveyTime}
+                    onChange={(e) => setSurveyTime(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Jumlah Orang */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                  <Mail className="h-3.5 w-3.5 text-amber-600" /> Email (Opsional)
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                  <Users className="h-3.5 w-3.5 text-amber-600" />
+                  Jumlah Orang
                 </label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  type="number"
+                  min="1"
+                  disabled={loading}
+                  value={numPeople}
+                  onChange={(e) => setNumPeople(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
+              {/* Catatan Tambahan */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                  <Calendar className="h-3.5 w-3.5 text-amber-600" /> Tanggal Survei
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                  <FileText className="h-3.5 w-3.5 text-amber-600" />
+                  Catatan Tambahan (Opsional)
                 </label>
-                <input
-                  type="date"
-                  required
-                  value={surveyDate}
-                  onChange={(e) => setSurveyDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                <textarea
+                  rows={2}
+                  disabled={loading}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Contoh: Saya pakai mobil"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                  <Clock className="h-3.5 w-3.5 text-amber-600" /> Waktu Survei
-                </label>
-                <input
-                  type="time"
-                  required
-                  value={surveyTime}
-                  onChange={(e) => setSurveyTime(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
+
+              {/* Tombol Submit */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-amber-600 py-3 text-xs font-bold text-white shadow-md transition hover:bg-amber-700 active:scale-98 disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Mengirim Jadwal...
+                    </>
+                  ) : (
+                    "Kirim Jadwal Survei"
+                  )}
+                </button>
               </div>
-            </div>
-
-            <div>
-              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                <Users className="h-3.5 w-3.5 text-amber-600" /> Jumlah Orang
-              </label>
-              <input
-                type="number"
-                min="1"
-                required
-                value={numPeople}
-                onChange={(e) => setNumPeople(e.target.value)}
-                className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-gray-700">
-                <FileText className="h-3.5 w-3.5 text-amber-600" /> Catatan Tambahan (Opsional)
-              </label>
-              <textarea
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Tuliskan catatan khusus..."
-                className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-600 py-3 text-sm font-bold text-white transition hover:bg-amber-700 disabled:opacity-50"
-            >
-              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {loading ? "Mengirim..." : "Kirim Jadwal Survei"}
-            </button>
-          </form>
-        )}
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

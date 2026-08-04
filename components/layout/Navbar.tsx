@@ -14,12 +14,10 @@ import {
   FileText,
   Landmark,
   TrendingUp,
-  Sparkles,
   Star,
   LogIn,
   User,
   Shield,
-  Tag,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -27,7 +25,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [premiumDropdownOpen, setPremiumDropdownOpen] = useState(false);
 
   // State untuk menyimpan data user login & status admin
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -124,77 +121,7 @@ export default function Navbar() {
             Titip Properti
           </Link>
 
-          {/* Menu Pricing / Paket Harga */}
-          <Link
-            href="/pricing"
-            className="text-foreground hover:text-secondary flex items-center gap-1.5 whitespace-nowrap transition-colors"
-          >
-            <Tag className="h-3.5 w-3.5 text-amber-500" />
-            <span>Pricing</span>
-          </Link>
-
-          {/* Dropdown Fitur Premium */}
-          <div className="relative" onMouseLeave={() => setPremiumDropdownOpen(false)}>
-            <button
-              onMouseEnter={() => setPremiumDropdownOpen(true)}
-              onClick={() => setPremiumDropdownOpen(!premiumDropdownOpen)}
-              className="text-foreground hover:text-secondary flex cursor-pointer items-center gap-1 py-2 whitespace-nowrap transition-colors"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              <span>Fitur Premium</span>
-              <ChevronDown
-                className={`h-3.5 w-3.5 transition-transform ${premiumDropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            <AnimatePresence>
-              {premiumDropdownOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="border-border absolute top-full left-0 z-50 w-64 space-y-1 rounded-2xl border bg-white p-2 shadow-xl"
-                >
-                  <Link
-                    href="/property-financial-planner"
-                    className="group flex items-start gap-3 rounded-xl p-3 transition hover:bg-amber-50/50"
-                    onClick={() => setPremiumDropdownOpen(false)}
-                  >
-                    <div className="rounded-lg bg-amber-100 p-2 text-amber-700 transition group-hover:bg-amber-600 group-hover:text-white">
-                      <Calculator className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900 transition group-hover:text-amber-600">
-                        Financial Planner
-                      </p>
-                      <p className="text-muted-foreground text-[11px]">
-                        Simulasi KPR & Keuangan Properti
-                      </p>
-                    </div>
-                  </Link>
-
-                  <Link
-                    href="/rekomendasi-properti"
-                    className="group flex items-start gap-3 rounded-xl p-3 transition hover:bg-amber-50/50"
-                    onClick={() => setPremiumDropdownOpen(false)}
-                  >
-                    <div className="rounded-lg bg-amber-100 p-2 text-amber-700 transition group-hover:bg-amber-600 group-hover:text-white">
-                      <Star className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900 transition group-hover:text-amber-600">
-                        Rekomendasi Properti
-                      </p>
-                      <p className="text-muted-foreground text-[11px]">
-                        Pilihan terbaik khusus untuk Anda
-                      </p>
-                    </div>
-                  </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Dropdown Tools Properti */}
 
           {/* Dropdown Tools Properti */}
           <div className="relative" onMouseLeave={() => setDropdownOpen(false)}>
@@ -365,40 +292,6 @@ export default function Navbar() {
               </Link>
               
               {/* Pricing Mobile Link */}
-              <Link
-                href="/pricing"
-                className="text-foreground hover:text-secondary border-border/50 flex items-center justify-between border-b py-2 font-medium"
-                onClick={() => setIsOpen(false)}
-              >
-                <span className="flex items-center gap-2">
-                  <Tag className="h-4 w-4 text-amber-500" /> Pricing
-                </span>
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                  Paket
-                </span>
-              </Link>
-
-              {/* Sub-menu Fitur Premium untuk Mobile */}
-              <div className="border-border/50 flex flex-col gap-2 border-b py-2">
-                <span className="flex items-center gap-1 text-xs font-bold tracking-wider text-amber-600 uppercase">
-                  <Sparkles className="h-3.5 w-3.5" /> Fitur Premium
-                </span>
-                <Link
-                  href="/property-financial-planner"
-                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Calculator className="h-4 w-4 text-amber-500" /> Financial Planner
-                </Link>
-                <Link
-                  href="/rekomendasi-properti"
-                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Star className="h-4 w-4 text-amber-500" /> Rekomendasi Properti
-                </Link>
-              </div>
-
               {/* Sub-menu Tools Properti untuk Mobile */}
               <div className="border-border/50 flex flex-col gap-2 border-b py-2">
                 <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">

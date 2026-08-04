@@ -15,6 +15,10 @@ import {
   MapPin,
   FileText,
   Ruler,
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  GripVertical,
 } from "lucide-react";
 
 // 🟢 Dynamic Import LocationPickerMap (No SSR)
@@ -30,14 +34,22 @@ const LocationPickerMap = dynamic(
   }
 );
 
+// Interface gabungan foto eksisting (URL) & foto baru (File)
+interface EditableImage {
+  id: string;
+  url: string;        // URL publik jika foto lama, atau Blob Preview jika foto baru
+  file?: File;        // Ada jika foto baru ditambahkan
+  isExisting: boolean; // Flag pembeda foto lama vs baru
+}
+
 export default function EditPropertyPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string }>;
 }) {
   // Support Async Params pada Next.js 15+
-  const resolvedParams = params instanceof Promise ? use(params) : params;
-  const id = resolvedParams.id;
+  const resolvedParams = use(params);
+  const propertyId = resolvedParams.id;
 
   const router = useRouter();
   const [fetching, setFetching] = useState(true);
@@ -70,12 +82,12 @@ export default function EditPropertyPage({
   const [lat, setLat] = useState<number>(-6.2); // Default Jakarta
   const [lng, setLng] = useState<number>(106.816666);
 
-  // State untuk Foto Eksisting (yang sudah di-upload sebelumnya)
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  // 🟢 Unified Image State
+  const [images, setImages] = useState<EditableImage[]>([]);
 
-  // State untuk Foto Baru (Multiple Files & Previews)
-  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
-  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+  // State Drag & Drop
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // 🟢 1. Fetch Data Properti Awal berdasarkan ID
   useEffect(() => {
@@ -85,63 +97,68 @@ export default function EditPropertyPage({
         const { data, error } = await supabase
           .from("properties")
           .select("*")
-          .eq("id", id)
+          .eq("id", propertyId)
           .single();
 
-        if (error) throw error;
+        if (error || !data) throw error || new Error("Properti tidak ditemukan.");
 
-        if (data) {
-          setTitle(data.title || "");
-          setDisplayPrice(
-            data.price ? new Intl.NumberFormat("id-ID").format(Number(data.price)) : ""
-          );
-          setStatus(data.status || "dijual");
-          setCategory(data.category || "Rumah");
-          setLegality(data.legality || "SHM");
+        setTitle(data.title || "");
+        setDisplayPrice(
+          data.price ? new Intl.NumberFormat("id-ID").format(Number(data.price)) : ""
+        );
+        setStatus(data.status || "dijual");
+        setCategory(data.category || "Rumah");
+        setLegality(data.legality || "SHM");
 
-          setAddress(data.address || "");
-          setProvince(data.province || "");
-          setCity(data.city || "");
-          setDistrict(data.district || "");
+        setAddress(data.address || "");
+        setProvince(data.province || "");
+        setCity(data.city || "");
+        setDistrict(data.district || "");
 
-          setBedrooms(data.bedrooms ?? "");
-          setBathrooms(data.bathrooms ?? "");
-          setLandArea(data.land_area ?? data.land_size ?? "");
-          setBuildingArea(data.building_area ?? data.building_size ?? "");
+        setBedrooms(data.bedrooms ?? "");
+        setBathrooms(data.bathrooms ?? "");
+        setLandArea(data.land_area ?? data.land_size ?? "");
+        setBuildingArea(data.building_area ?? data.building_size ?? "");
 
-          setDescription(data.description || "");
-          setIsFeatured(data.is_featured || false);
+        setDescription(data.description || "");
+        setIsFeatured(data.is_featured || false);
 
-          if (data.lat) setLat(Number(data.lat));
-          if (data.lng) setLng(Number(data.lng));
+        if (data.lat) setLat(Number(data.lat));
+        if (data.lng) setLng(Number(data.lng));
 
-          // Set foto eksisting
-          const imgs = Array.isArray(data.images) && data.images.length > 0
-            ? data.images
-            : data.image_url
-            ? [data.image_url]
-            : [];
-          setExistingImages(imgs);
-        }
-      } catch (err: any) {
-        setErrorMsg(err?.message || "Gagal memuat data properti.");
+        // Format foto eksisting ke format EditableImage
+        const rawImages: string[] = Array.isArray(data.images) && data.images.length > 0
+          ? data.images
+          : data.image_url
+          ? [data.image_url]
+          : [];
+
+        const initialImages: EditableImage[] = rawImages.map((url, idx) => ({
+          id: `existing-${idx}-${Date.now()}`,
+          url,
+          isExisting: true,
+        }));
+
+        setImages(initialImages);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Gagal memuat data properti.";
+        setErrorMsg(message);
       } finally {
         setFetching(false);
       }
     }
 
-    if (id) fetchProperty();
-  }, [id]);
+    if (propertyId) fetchProperty();
+  }, [propertyId]);
 
-  // 🟢 Helper untuk auto-format titik ribuan pada Harga
+  // Format titik ribuan pada input Harga
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/\D/g, ""); // Ambil hanya angka
+    const rawValue = e.target.value.replace(/\D/g, "");
     if (!rawValue) {
       setDisplayPrice("");
       return;
     }
-    const formatted = new Intl.NumberFormat("id-ID").format(Number(rawValue));
-    setDisplayPrice(formatted);
+    setDisplayPrice(new Intl.NumberFormat("id-ID").format(Number(rawValue)));
   };
 
   // Helper untuk slug URL
@@ -158,29 +175,86 @@ export default function EditPropertyPage({
     setLng(newLng);
   };
 
-  // Handler untuk Tambah File Foto Baru
+  // 🟢 Handler Tambah Foto Baru (Multiple Files)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
 
-    setNewImageFiles((prev) => [...prev, ...filesArray]);
+    const newImageItems: EditableImage[] = filesArray.map((file, idx) => ({
+      id: `new-${Date.now()}-${idx}`,
+      url: URL.createObjectURL(file),
+      file,
+      isExisting: false,
+    }));
 
-    const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
-    setNewImagePreviews((prev) => [...prev, ...newPreviews]);
+    setImages((prev) => [...prev, ...newImageItems]);
+    e.target.value = ""; // Reset input file agar bisa pilih file dengan nama sama lagi
   };
 
-  // Handler Hapus Foto Eksisting
-  const handleRemoveExistingImage = (index: number) => {
-    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  // 🟢 Handler Hapus Foto
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => {
+      const itemToRemove = prev[index];
+      // Jika foto baru (memiliki preview Blob), bersihkan memory leak
+      if (itemToRemove && !itemToRemove.isExisting && itemToRemove.url) {
+        URL.revokeObjectURL(itemToRemove.url);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
-  // Handler Hapus Foto Baru
-  const handleRemoveNewImage = (index: number) => {
-    if (newImagePreviews[index]) {
-      URL.revokeObjectURL(newImagePreviews[index]);
-    }
-    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  // 🟢 Handler Geser Urutan Foto (Kiri/Kanan)
+  const moveImage = (index: number, direction: "left" | "right") => {
+    const targetIndex = direction === "left" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= images.length) return;
+
+    setImages((prev) => {
+      const updated = [...prev];
+      const temp = updated[index];
+      updated[index] = updated[targetIndex];
+      updated[targetIndex] = temp;
+      return updated;
+    });
+  };
+
+  // 🟢 Handler Set Foto Utama (Jadikan index 0)
+  const setMainImage = (index: number) => {
+    if (index === 0) return;
+    setImages((prev) => {
+      const updated = [...prev];
+      const [selectedImage] = updated.splice(index, 1);
+      return [selectedImage, ...updated];
+    });
+  };
+
+  // 🟢 Handler Drag and Drop Reordering
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (index: number) => {
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    setImages((prev) => {
+      const updated = [...prev];
+      const [draggedItem] = updated.splice(draggedIndex, 1);
+      updated.splice(index, 0, draggedItem);
+      return updated;
+    });
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   // 🟢 2. Submit Handler Update Properti
@@ -190,48 +264,47 @@ export default function EditPropertyPage({
     setErrorMsg("");
 
     try {
-      const totalImages = existingImages.length + newImageFiles.length;
-      if (totalImages === 0) {
+      if (images.length === 0) {
         throw new Error("Silakan pilih minimal satu foto utama properti.");
       }
 
-      // Clean harga dari titik untuk disimpan di Database
+      // Clean harga dari titik untuk disimpan di DB
       const rawPrice = displayPrice.replace(/\D/g, "");
 
-      // Auto Generate Lokasi Ringkas (Kecamatan, Kota/Provinsi)
+      // Auto Generate Lokasi Ringkas
       const locationRingkas = [district, city || province]
         .filter(Boolean)
         .join(", ") || address;
 
-      const newlyUploadedUrls: string[] = [];
+      // Proses pengunggahan gambar baru & penyusunan URL sesuai urutan di UI
+      const finalImageUrls: string[] = [];
 
-      // Upload Foto-Foto Baru ke Supabase Storage (jika ada)
-      for (const file of newImageFiles) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `listings/${fileName}`;
+      for (const img of images) {
+        if (img.isExisting) {
+          finalImageUrls.push(img.url);
+        } else if (img.file) {
+          const fileExt = img.file.name.split(".").pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+          const filePath = `listings/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("properties")
-          .upload(filePath, file);
+          const { error: uploadError } = await supabase.storage
+            .from("properties")
+            .upload(filePath, img.file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data: publicUrlData } = supabase.storage
-          .from("properties")
-          .getPublicUrl(filePath);
+          const { data: publicUrlData } = supabase.storage
+            .from("properties")
+            .getPublicUrl(filePath);
 
-        newlyUploadedUrls.push(publicUrlData.publicUrl);
+          finalImageUrls.push(publicUrlData.publicUrl);
+        }
       }
 
-      // Gabungkan Foto Eksisting + Foto Baru
-      const finalImages = [...existingImages, ...newlyUploadedUrls];
-      const mainImageUrl = finalImages[0] || "";
-
-      // Regenerate slug jika judul diperbarui
+      const mainImageUrl = finalImageUrls[0] || "";
       const slug = `${generateSlug(title)}-${Date.now().toString().slice(-4)}`;
 
-      // Update Data ke Database Supabase
+      // Update Data di Supabase
       const { error: dbError } = await supabase
         .from("properties")
         .update({
@@ -254,26 +327,23 @@ export default function EditPropertyPage({
           building_area: Number(buildingArea) || 0,
           description,
           image_url: mainImageUrl,
-          images: finalImages,
+          images: finalImageUrls,
           is_featured: isFeatured,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", id);
+        .eq("id", propertyId);
 
       if (dbError) throw dbError;
 
       alert("Properti berhasil diperbarui!");
       router.push("/admin/properties");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const actualErrorMsg =
-        err?.message ||
-        err?.error_description ||
-        err?.details ||
-        err?.hint ||
-        (typeof err === "object" && err !== null
-          ? JSON.stringify(err, Object.getOwnPropertyNames(err))
-          : String(err));
+        (err instanceof Error && err.message) ||
+        (typeof err === "object" && err !== null && "message" in err && typeof (err as { message?: unknown }).message === "string"
+          ? (err as { message?: string }).message
+          : "Terjadi kesalahan saat memperbarui properti.");
 
       console.error(`Detail Error Lengkap: ${actualErrorMsg}`);
       setErrorMsg(actualErrorMsg || "Terjadi kesalahan saat memperbarui properti.");
@@ -309,7 +379,7 @@ export default function EditPropertyPage({
             <h1 className="font-heading text-2xl font-bold text-gray-900">
               Edit Properti
             </h1>
-            <p className="text-xs text-gray-400">ID Properti: {id}</p>
+            <p className="text-xs text-gray-400">ID Properti: {propertyId}</p>
           </div>
         </div>
       </div>
@@ -599,23 +669,25 @@ export default function EditPropertyPage({
           </div>
         </div>
 
-        {/* SEKSI 4: GALERI FOTO */}
+        {/* SEKSI 4: GALERI FOTO (INTERAKTIF & REORDERABLE) */}
         <div className="space-y-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-            <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600">
-              <ImagePlus className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">
-                Galeri Foto Properti
-              </h2>
-              <p className="text-xs text-gray-500">
-                Kelola foto yang tersimpan atau tambahkan foto baru. Foto pertama otomatis menjadi foto sampul utama.
-              </p>
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600">
+                <ImagePlus className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-gray-900">
+                  Galeri Foto Properti
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Urutkan foto atau atur foto sampul utama. Foto paling awal (paling kiri) akan menjadi foto utama.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Upload Area */}
+          {/* Upload Area Dropzone */}
           <div>
             <label className="flex flex-col items-center justify-center cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/50 p-6 text-center transition hover:bg-gray-100/50">
               <div className="flex flex-col items-center space-y-2">
@@ -626,7 +698,7 @@ export default function EditPropertyPage({
                   Klik untuk tambah foto baru atau seret file ke sini
                 </p>
                 <p className="text-[10px] text-gray-400">
-                  PNG, JPG, JPEG (Bisa pilih lebih dari satu)
+                  PNG, JPG, JPEG (Bisa pilih sekaligus banyak)
                 </p>
               </div>
               <input
@@ -639,68 +711,112 @@ export default function EditPropertyPage({
             </label>
           </div>
 
-          {/* Previews Foto (Eksisting & Baru) */}
-          {(existingImages.length > 0 || newImagePreviews.length > 0) && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-gray-700">
-                Semua Foto ({existingImages.length + newImagePreviews.length}):
-              </p>
-              
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {/* 1. Render Foto Eksisting yang Sudah Ada */}
-                {existingImages.map((src, index) => (
-                  <div
-                    key={`existing-${index}`}
-                    className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shadow-xs"
-                  >
-                    <img
-                      src={src}
-                      alt={`Foto Eksisting ${index}`}
-                      className="h-full w-full object-cover"
-                    />
-                    {index === 0 && (
-                      <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                        Utama
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExistingImage(index)}
-                      className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700 cursor-pointer"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+          {/* Render Previews Foto */}
+          {images.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                <span>Total Foto: {images.length}</span>
+                <span className="text-[11px] font-normal text-gray-400">
+                  Gunakan tombol panah atau drag foto untuk mengubah urutan
+                </span>
+              </div>
 
-                {/* 2. Render Preview Foto Baru */}
-                {newImagePreviews.map((src, index) => {
-                  const globalIndex = existingImages.length + index;
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {images.map((item, index) => {
+                  const isMain = index === 0;
+                  const isBeingDragged = draggedIndex === index;
+                  const isDragOver = dragOverIndex === index;
+
                   return (
                     <div
-                      key={`new-${index}`}
-                      className="relative group aspect-square rounded-xl overflow-hidden border-2 border-amber-400 bg-gray-100 shadow-xs"
+                      key={item.id}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={() => handleDrop(index)}
+                      onDragEnd={handleDragEnd}
+                      className={`group relative flex flex-col rounded-2xl border transition-all overflow-hidden bg-white shadow-xs ${
+                        isMain
+                          ? "border-amber-500 ring-2 ring-amber-500/20"
+                          : "border-gray-200 hover:border-gray-300"
+                      } ${isBeingDragged ? "opacity-40" : "opacity-100"} ${
+                        isDragOver ? "border-dashed border-amber-500 bg-amber-50/20" : ""
+                      }`}
                     >
-                      <img
-                        src={src}
-                        alt={`Preview Baru ${index}`}
-                        className="h-full w-full object-cover"
-                      />
-                      <span className="absolute top-2 left-2 rounded bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                        Baru
-                      </span>
-                      {globalIndex === 0 && (
-                        <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                          Utama
+                      {/* Image Frame */}
+                      <div className="relative aspect-4/3 w-full overflow-hidden bg-gray-100">
+                        <img
+                          src={item.url}
+                          alt={`Foto Properti ${index + 1}`}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+
+                        {/* Top Badges */}
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                          {isMain ? (
+                            <span className="flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                              <Star className="h-3 w-3 fill-current" /> Utama
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setMainImage(index)}
+                              className="opacity-0 group-hover:opacity-100 transition flex items-center gap-1 rounded-md bg-black/70 hover:bg-amber-500 px-2 py-0.5 text-[9px] font-semibold text-white shadow-sm"
+                            >
+                              <Star className="h-3 w-3" /> Set Utama
+                            </button>
+                          )}
+
+                          {!item.isExisting && (
+                            <span className="rounded-md bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                              Baru
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Top Right Actions (Hapus) */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700 cursor-pointer"
+                          title="Hapus foto ini"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+
+                        {/* Drag Handle Icon Overlay */}
+                        <div className="absolute inset-x-0 bottom-0 flex justify-center pb-1 bg-linear-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition">
+                          <GripVertical className="h-4 w-4 text-white/80 cursor-grab active:cursor-grabbing" />
+                        </div>
+                      </div>
+
+                      {/* Bottom Control Toolbar */}
+                      <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50/80 px-3 py-2 text-gray-600">
+                        <span className="text-[10px] font-medium text-gray-400">
+                          #{index + 1}
                         </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveNewImage(index)}
-                        className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700 cursor-pointer"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveImage(index, "left")}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-2xs hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                            title="Geser ke kiri"
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === images.length - 1}
+                            onClick={() => moveImage(index, "right")}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-2xs hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                            title="Geser ke kanan"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

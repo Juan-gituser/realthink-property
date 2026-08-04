@@ -1,31 +1,37 @@
 // app/decision-center/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckSquare, ArrowRight, ShieldCheck, Sparkles, Calculator } from "lucide-react";
+
+const initialChecklist = {
+  emergencyFund: true,
+  dpReady: true,
+  slikClean: true,
+};
 
 export default function DecisionCenterPage() {
   const router = useRouter();
 
   // State untuk checklist kesiapan membeli
-  const [checklist, setChecklist] = useState({
-    emergencyFund: true,
-    dpReady: true,
-    slikClean: true,
-  });
+  const [checklist, setChecklist] = useState(() => {
+    if (typeof window === "undefined") return initialChecklist;
 
-  // Load status dari localStorage saat komponen dimuat (opsional agar tersimpan)
-  useEffect(() => {
-    const saved = localStorage.getItem("decision_checklist");
-    if (saved) {
-      try {
-        setChecklist(JSON.parse(saved));
-      } catch (e) {
-        console.error(e);
-      }
+    try {
+      const saved = window.localStorage.getItem("decision_checklist");
+      if (!saved) return initialChecklist;
+
+      const parsed = JSON.parse(saved) as Partial<typeof initialChecklist>;
+      return {
+        ...initialChecklist,
+        ...parsed,
+      };
+    } catch (error) {
+      console.error(error);
+      return initialChecklist;
     }
-  }, []);
+  });
 
   // Handler untuk mengubah status checkbox
   const handleToggle = (key: keyof typeof checklist) => {

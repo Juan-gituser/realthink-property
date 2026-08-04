@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server"; // Gunakan server client untuk Server Component
 import DetailPropertiClient from "@/components/DetailPropertiClient";
 
 interface PageProps {
@@ -8,13 +8,13 @@ interface PageProps {
 
 // Fungsi increment view count ke Supabase
 async function incrementViewCount(propertyId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.rpc("increment_views", { property_id: propertyId });
 }
 
-// Fungsi mengambil data properti tunggal berdasarkan slug dari Supabase
+// Fungsi mengambil data properti dari Supabase
 async function getPropertyBySlug(slug: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("properties")
@@ -27,7 +27,6 @@ async function getPropertyBySlug(slug: string) {
     return null;
   }
 
-  // Mapping data database ke format props DetailPropertiClient
   return {
     id: String(data.id),
     title: data.title || "Tanpa Judul",
@@ -61,7 +60,6 @@ export default async function DetailPropertiPage({ params }: PageProps) {
   const resolvedParams = await params;
   const { slug } = resolvedParams;
 
-  // Ambil data properti asli dari Supabase
   const properti = await getPropertyBySlug(slug);
 
   if (!properti) {

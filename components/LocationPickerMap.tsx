@@ -20,8 +20,8 @@ export default function LocationPickerMap({
   onLocationChange,
 }: LocationPickerMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<ReturnType<typeof import("leaflet").map> | null>(null);
+  const markerRef = useRef<ReturnType<typeof import("leaflet").marker> | null>(null);
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -33,7 +33,7 @@ export default function LocationPickerMap({
   useEffect(() => {
     if (!mapRef.current) return;
 
-    let L: any;
+    let L: typeof import("leaflet");
     import("leaflet").then((leaflet) => {
       L = leaflet;
       if (!mapRef.current) return;
@@ -74,7 +74,7 @@ export default function LocationPickerMap({
       });
 
       // Event saat area peta diklik
-      map.on("click", (e: any) => {
+      map.on("click", (e: { latlng: { lat: number; lng: number } }) => {
         const { lat: newLat, lng: newLng } = e.latlng;
         marker.setLatLng([newLat, newLng]);
         onLocationChange(newLat, newLng);

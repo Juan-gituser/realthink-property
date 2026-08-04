@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -15,6 +15,9 @@ import {
   MapPin,
   FileText,
   Ruler,
+  ChevronLeft,
+  ChevronRight,
+  Star,
 } from "lucide-react";
 
 // 🟢 Dynamic Import LocationPickerMap (No SSR)
@@ -30,6 +33,13 @@ const LocationPickerMap = dynamic(
   }
 );
 
+// Interface untuk menampung data foto terpilih
+interface SelectedImage {
+  id: string;
+  file: File;
+  previewUrl: string;
+}
+
 export default function CreatePropertyPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -41,19 +51,19 @@ export default function CreatePropertyPage() {
   const [status, setStatus] = useState<"dijual" | "disewa">("dijual");
   const [category, setCategory] = useState("Rumah");
   const [legality, setLegality] = useState("SHM");
-  
+
   // Alamat State
   const [address, setAddress] = useState("");
   const [province, setProvince] = useState("");
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
-  
+
   // Spesifikasi State
   const [bedrooms, setBedrooms] = useState<number | "">("");
   const [bathrooms, setBathrooms] = useState<number | "">("");
   const [landArea, setLandArea] = useState<number | "">("");
   const [buildingArea, setBuildingArea] = useState<number | "">("");
-  
+
   const [description, setDescription] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
 
@@ -61,11 +71,21 @@ export default function CreatePropertyPage() {
   const [lat, setLat] = useState<number>(-6.2); // Default Jakarta
   const [lng, setLng] = useState<number>(106.816666);
 
-  // State untuk Multiple Files & Previews
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  // 🟢 State Terpadu untuk Foto
+  const [images, setImages] = useState<SelectedImage[]>([]);
 
-  // 🟢 Helper untuk auto-format titik ribuan pada Harga
+  // State Drag & Drop Native (Desktop)
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Pembersihan memory leak untuk blob preview URL saat unmount
+  useEffect(() => {
+    return () => {
+      images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    };
+  }, [images]);
+
+  // Helper untuk auto-format titik ribuan pada Harga
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, ""); // Ambil hanya angka
     if (!rawValue) {
@@ -90,22 +110,97 @@ export default function CreatePropertyPage() {
     setLng(newLng);
   };
 
+  // Handler Pilih File Foto
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const filesArray = Array.from(e.target.files);
 
-    setImageFiles((prev) => [...prev, ...filesArray]);
+    const validImages: SelectedImage[] = [];
+    const MAX_SIZE_MB = 5;
 
-    const newPreviews = filesArray.map((file) => URL.createObjectURL(file));
-    setImagePreviews((prev) => [...prev, ...newPreviews]);
+    filesArray.forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        alert(`File "${file.name}" bukan berupa gambar.`);
+        return;
+      }
+      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+        alert(`Ukuran foto "${file.name}" melebihi batas ${MAX_SIZE_MB}MB.`);
+        return;
+      }
+
+      validImages.push({
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      });
+    });
+
+    setImages((prev) => [...prev, ...validImages]);
+
+    // Reset input file agar pengguna bisa memilih file yang sama jika diperlukan
+    e.target.value = "";
   };
 
-  const handleRemoveImage = (index: number) => {
-    if (imagePreviews[index]) {
-      URL.revokeObjectURL(imagePreviews[index]);
+  // Handler Hapus Foto
+  const handleRemoveImage = (id: string) => {
+    setImages((prev) => {
+      const itemToRemove = prev.find((img) => img.id === id);
+      if (itemToRemove) {
+        URL.revokeObjectURL(itemToRemove.previewUrl);
+      }
+      return prev.filter((img) => img.id !== id);
+    });
+  };
+
+  // Helper Geser Posisi Foto (Mobile & Fallback)
+  const moveImage = (currentIndex: number, direction: "left" | "right") => {
+    const targetIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= images.length) return;
+
+    const updated = [...images];
+    const [movedItem] = updated.splice(currentIndex, 1);
+    updated.splice(targetIndex, 0, movedItem);
+    setImages(updated);
+  };
+
+  // Helper Set Foto Utama (Langsung Pindah ke Indeks #0)
+  const setAsMainImage = (index: number) => {
+    if (index === 0) return;
+    const updated = [...images];
+    const [selected] = updated.splice(index, 1);
+    updated.unshift(selected);
+    setImages(updated);
+  };
+
+  // HANDLER DRAG & DROP GRID NATIVE (Desktop)
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = (targetIndex: number) => {
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null);
+      setDragOverIndex(null);
+      return;
     }
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+
+    const updated = [...images];
+    const [movedItem] = updated.splice(draggedIndex, 1);
+    updated.splice(targetIndex, 0, movedItem);
+
+    setImages(updated);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,29 +209,37 @@ export default function CreatePropertyPage() {
     setErrorMsg("");
 
     try {
-      if (imageFiles.length === 0) {
+      if (images.length === 0) {
         throw new Error("Silakan pilih minimal satu foto utama properti terlebih dahulu.");
       }
 
-      // Clean harga dari titik untuk disimpan di Database
-      const rawPrice = displayPrice.replace(/\D/g, "");
+      // Clean harga dari titik untuk disimpan sebagai number di Database
+      const rawPriceNumeric = Number(displayPrice.replace(/\D/g, "")) || 0;
+      if (rawPriceNumeric <= 0) {
+        throw new Error("Silakan masukkan harga properti yang valid.");
+      }
 
       // Auto Generate Lokasi Ringkas (Kecamatan, Kota/Provinsi)
-      const locationRingkas = [district, city || province]
-        .filter(Boolean)
-        .join(", ") || address;
-
-      const uploadedUrls: string[] = [];
+      const locationRingkas =
+        [district, city || province].filter(Boolean).join(", ") || address;
 
       // 1. Upload foto ke Supabase Storage
-      for (const file of imageFiles) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const uploadPromises = images.map(async (item) => {
+        const file = item.file;
+        const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const uniqueId = typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        
+        const fileName = `${uniqueId}.${fileExt}`;
         const filePath = `listings/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("properties")
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
 
         if (uploadError) throw uploadError;
 
@@ -144,22 +247,24 @@ export default function CreatePropertyPage() {
           .from("properties")
           .getPublicUrl(filePath);
 
-        uploadedUrls.push(publicUrlData.publicUrl);
-      }
+        return publicUrlData.publicUrl;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
 
       // 2. Buat slug unik
-      const slug = `${generateSlug(title)}-${Date.now().toString().slice(-4)}`;
+      const slug = `${generateSlug(title)}-${Date.now().toString().slice(-5)}`;
 
-      // 3. Insert ke DB
+      // 3. Insert ke DB Supabase
       const { error: dbError } = await supabase.from("properties").insert([
         {
           title,
           slug,
-          price: rawPrice,
+          price: rawPriceNumeric,
           status,
           category,
           legality,
-          location: locationRingkas, // Auto generated lokasi ringkas
+          location: locationRingkas,
           address,
           province,
           city,
@@ -171,8 +276,8 @@ export default function CreatePropertyPage() {
           land_area: Number(landArea) || 0,
           building_area: Number(buildingArea) || 0,
           description,
-          image_url: uploadedUrls[0],
-          images: uploadedUrls,
+          image_url: uploadedUrls[0], // Foto urutan #0 otomatis jadi Cover Utama
+          images: uploadedUrls,      // Array foto berurutan
           is_featured: isFeatured,
         },
       ]);
@@ -182,15 +287,12 @@ export default function CreatePropertyPage() {
       alert("Properti berhasil ditambahkan!");
       router.push("/admin/properties");
       router.refresh();
-    } catch (err: any) {
+    } catch (err: unknown) {
       const actualErrorMsg =
-        err?.message ||
-        err?.error_description ||
-        err?.details ||
-        err?.hint ||
-        (typeof err === "object" && err !== null
-          ? JSON.stringify(err, Object.getOwnPropertyNames(err))
-          : String(err));
+        (err instanceof Error && err.message) ||
+        (typeof err === "object" && err !== null && "message" in err && typeof (err as { message?: unknown }).message === "string"
+          ? (err as { message?: string }).message
+          : "Terjadi kesalahan saat menyimpan properti.");
 
       console.error(`Detail Error Lengkap: ${actualErrorMsg}`);
       setErrorMsg(actualErrorMsg || "Terjadi kesalahan saat menyimpan properti.");
@@ -254,10 +356,11 @@ export default function CreatePropertyPage() {
               <input
                 type="text"
                 required
+                disabled={loading}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Rumah Minimalis Modern Hook Cilandak"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               />
             </div>
 
@@ -272,10 +375,11 @@ export default function CreatePropertyPage() {
                 <input
                   type="text"
                   required
+                  disabled={loading}
                   value={displayPrice}
                   onChange={handlePriceChange}
                   placeholder="1.250.000.000"
-                  className="w-full rounded-xl border border-gray-200 pl-9 pr-3.5 py-2.5 text-xs font-semibold text-gray-900 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 pl-9 pr-3.5 py-2.5 text-xs font-semibold text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
                 />
               </div>
             </div>
@@ -285,9 +389,10 @@ export default function CreatePropertyPage() {
                 Status Properti
               </label>
               <select
+                disabled={loading}
                 value={status}
                 onChange={(e) => setStatus(e.target.value as "dijual" | "disewa")}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               >
                 <option value="dijual">Dijual</option>
                 <option value="disewa">Disewa</option>
@@ -299,9 +404,10 @@ export default function CreatePropertyPage() {
                 Kategori Properti
               </label>
               <select
+                disabled={loading}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               >
                 <option value="Rumah">Rumah</option>
                 <option value="Apartemen">Apartemen</option>
@@ -316,9 +422,10 @@ export default function CreatePropertyPage() {
                 Legalitas / Sertifikat
               </label>
               <select
+                disabled={loading}
                 value={legality}
                 onChange={(e) => setLegality(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               >
                 <option value="SHM">SHM - Sertifikat Hak Milik</option>
                 <option value="HGB">HGB - Hak Guna Bangunan</option>
@@ -331,7 +438,7 @@ export default function CreatePropertyPage() {
 
           {/* Sub-Seksi Spesifikasi Fisik */}
           <div className="pt-2 border-t border-gray-100">
-            <label className="mb-3 text-gray-800 flex items-center gap-1.5">
+            <label className="mb-3 text-gray-800 flex items-center gap-1.5 text-xs font-bold">
               <Ruler className="h-4 w-4 text-amber-500" /> Spesifikasi Fisik
             </label>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -341,12 +448,14 @@ export default function CreatePropertyPage() {
                 </label>
                 <input
                   type="number"
+                  min="0"
+                  disabled={loading}
                   value={bedrooms}
                   onChange={(e) =>
                     setBedrooms(e.target.value ? Number(e.target.value) : "")
                   }
                   placeholder="3"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
                 />
               </div>
               <div>
@@ -355,12 +464,14 @@ export default function CreatePropertyPage() {
                 </label>
                 <input
                   type="number"
+                  min="0"
+                  disabled={loading}
                   value={bathrooms}
                   onChange={(e) =>
                     setBathrooms(e.target.value ? Number(e.target.value) : "")
                   }
                   placeholder="2"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
                 />
               </div>
               <div>
@@ -369,12 +480,14 @@ export default function CreatePropertyPage() {
                 </label>
                 <input
                   type="number"
+                  min="0"
+                  disabled={loading}
                   value={landArea}
                   onChange={(e) =>
                     setLandArea(e.target.value ? Number(e.target.value) : "")
                   }
                   placeholder="120"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
                 />
               </div>
               <div>
@@ -383,12 +496,14 @@ export default function CreatePropertyPage() {
                 </label>
                 <input
                   type="number"
+                  min="0"
+                  disabled={loading}
                   value={buildingArea}
                   onChange={(e) =>
                     setBuildingArea(e.target.value ? Number(e.target.value) : "")
                   }
                   placeholder="90"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
                 />
               </div>
             </div>
@@ -419,10 +534,11 @@ export default function CreatePropertyPage() {
               <input
                 type="text"
                 required
+                disabled={loading}
                 value={province}
                 onChange={(e) => setProvince(e.target.value)}
                 placeholder="DKI Jakarta"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               />
             </div>
 
@@ -432,10 +548,11 @@ export default function CreatePropertyPage() {
               </label>
               <input
                 type="text"
+                disabled={loading}
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 placeholder="Jakarta Selatan"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               />
             </div>
 
@@ -445,10 +562,11 @@ export default function CreatePropertyPage() {
               </label>
               <input
                 type="text"
+                disabled={loading}
                 value={district}
                 onChange={(e) => setDistrict(e.target.value)}
                 placeholder="Cilandak"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               />
             </div>
 
@@ -459,10 +577,11 @@ export default function CreatePropertyPage() {
               <input
                 type="text"
                 required
+                disabled={loading}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Contoh: Jl. Cilandak Barat No. 12, RT 04 / RW 02"
-                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               />
             </div>
           </div>
@@ -497,16 +616,17 @@ export default function CreatePropertyPage() {
 
           <div>
             <textarea
-              rows={4}
+              rows={5}
+              disabled={loading}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Jelaskan fasilitas, kondisi bangunan, keunggulan lokasi, dll..."
-              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
             />
           </div>
         </div>
 
-        {/* SEKSI 4: GALERI FOTO */}
+        {/* SEKSI 4: GALERI FOTO & REARRANGE (GRID + TOUCH/MOBILE SUPPORT) */}
         <div className="space-y-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
             <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600">
@@ -517,7 +637,7 @@ export default function CreatePropertyPage() {
                 Galeri Foto Properti
               </h2>
               <p className="text-xs text-gray-500">
-                Pilih beberapa foto sekaligus. Foto pertama otomatis menjadi foto sampul utama.
+                Pilih beberapa foto sekaligus. Geser urutan foto atau gunakan tombol di bawahnya — foto posisi pertama otomatis menjadi <strong>Cover Utama</strong>.
               </p>
             </div>
           </div>
@@ -532,59 +652,131 @@ export default function CreatePropertyPage() {
                   Klik untuk pilih foto atau seret file ke sini
                 </p>
                 <p className="text-[10px] text-gray-400">
-                  PNG, JPG, JPEG (Bisa pilih lebih dari satu)
+                  PNG, JPG, JPEG (Maksimal 5MB per file)
                 </p>
               </div>
               <input
                 type="file"
                 multiple
                 accept="image/*"
+                disabled={loading}
                 onChange={handleFileChange}
                 className="hidden"
               />
             </label>
           </div>
 
-          {imagePreviews.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-700">
-                Foto Terpilih ({imagePreviews.length}):
-              </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {imagePreviews.map((src, index) => (
-                  <div
-                    key={index}
-                    className="relative group aspect-square rounded-xl overflow-hidden border border-gray-200 bg-gray-100 shadow-xs"
-                  >
-                    <img
-                      src={src}
-                      alt={`Preview ${index}`}
-                      className="h-full w-full object-cover"
-                    />
-                    {index === 0 && (
-                      <span className="absolute bottom-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                        Utama
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-600 text-white shadow-md transition hover:bg-rose-700 cursor-pointer"
+          {/* TAMPILAN GRID FOTO TERPILIH */}
+          {images.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-bold text-gray-700">
+                  Foto Terpilih ({images.length}):
+                </p>
+                <span className="text-[11px] text-amber-600 font-medium">
+                  💡 Gunakan drag & drop atau tombol panah untuk atur urutan
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                {images.map((item, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isDragOver = dragOverIndex === index;
+
+                  return (
+                    <div
+                      key={item.id}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={() => handleDrop(index)}
+                      onDragEnd={handleDragEnd}
+                      className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-gray-100 transition-all cursor-grab active:cursor-grabbing select-none ${
+                        isDragging
+                          ? "opacity-30 scale-95 border-amber-500"
+                          : isDragOver
+                          ? "border-2 border-amber-500 scale-102 shadow-lg"
+                          : "border-gray-200 hover:border-gray-300 hover:shadow-md"
+                      }`}
                     >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                      {/* Container Gambar */}
+                      <div className="relative aspect-4/3 w-full overflow-hidden bg-gray-200">
+                        <img
+                          src={item.previewUrl}
+                          alt={`Foto ${index + 1}`}
+                          className="h-full w-full object-cover pointer-events-none"
+                        />
+
+                        {/* Badge Utama (Indeks #0) */}
+                        {index === 0 && (
+                          <div className="absolute bottom-2 left-2 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                            Utama
+                          </div>
+                        )}
+
+                        {/* Tombol Hapus */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveImage(item.id);
+                          }}
+                          className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-rose-500/90 text-white shadow-md backdrop-blur-xs transition hover:bg-rose-600 hover:scale-110 active:scale-95 cursor-pointer"
+                          title="Hapus Foto"
+                        >
+                          <X className="h-4 w-4 stroke-[2.5]" />
+                        </button>
+                      </div>
+
+                      {/* Kontrol Navigasi & Posisi (Mobile-friendly) */}
+                      <div className="flex items-center justify-between border-t border-gray-100 bg-white p-1.5">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveImage(index, "left")}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                            title="Geser Kiri"
+                          >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={index === images.length - 1}
+                            onClick={() => moveImage(index, "right")}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                            title="Geser Kanan"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        {index !== 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setAsMainImage(index)}
+                            className="flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700 transition hover:bg-amber-100"
+                            title="Set sebagai foto utama"
+                          >
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            <span>Utama</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
 
         {/* SEKSI 5: OPTION & SUBMIT */}
-        <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <input
             type="checkbox"
             id="featured"
+            disabled={loading}
             checked={isFeatured}
             onChange={(e) => setIsFeatured(e.target.checked)}
             className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
