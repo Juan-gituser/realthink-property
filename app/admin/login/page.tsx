@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Building2, Lock, Mail, Loader2 } from "lucide-react";
 
 export default function AdminLoginPage() {
@@ -10,25 +9,31 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const router = useRouter();
-  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setErrorMsg("Email atau kata sandi tidak valid.");
+      if (error) {
+        setErrorMsg("Email atau kata sandi tidak valid.");
+        setLoading(false);
+        return;
+      }
+
+      if (data?.session) {
+        // Menggunakan full page reload agar Supabase & Next.js menginisialisasi ulang sesi secara bersih
+        window.location.href = "/admin";
+      }
+    } catch (err) {
+      setErrorMsg("Terjadi kesalahan sistem. Silakan coba lagi.");
       setLoading(false);
-    } else {
-      router.push("/admin");
-      router.refresh();
     }
   };
 
@@ -85,7 +90,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg py-3 font-semibold text-white shadow-md transition"
+            className="bg-primary hover:bg-primary/90 flex w-full items-center justify-center gap-2 rounded-lg py-3 font-semibold text-white shadow-md transition disabled:opacity-50"
           >
             {loading ? (
               <Loader2 className="text-secondary h-5 w-5 animate-spin" />

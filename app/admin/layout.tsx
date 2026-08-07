@@ -33,6 +33,7 @@ import {
   ExternalLink,
   LogOut,
   Building,
+  Loader2,
 } from "lucide-react";
 
 interface NavItem {
@@ -46,7 +47,6 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// Durasi inaktivitas sebelum auto logout (15 Menit)
 const INACTIVITY_TIMEOUT = 15 * 60 * 1000;
 
 const menuGroups: NavGroup[] = [
@@ -108,6 +108,8 @@ const menuGroups: NavGroup[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
   const pathname = usePathname();
   const router = useRouter();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -117,9 +119,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Handler Logout Supabase
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
-    router.push("/admin/login");
-    router.refresh();
+    router.replace("/admin/login");
   }, [router]);
+
+  // 1. Verifikasi Autentikasi yang Aman & Stabil
+  useEffect(() => {
+    if (isAuthPage) {
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    // Cek langsung session saat awal render
+    const checkInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        if (!session) {
+          router.replace("/admin/login");
+        } else {
+          setIsCheckingAuth(false);
+        }
+      } catch (err) {
+        if (isMounted) router.replace("/admin/login");
+      }
+    };
+
+    checkInitialSession();
+
+    // Pantau perubahan sesi autentikasi real-time
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) return;
+
+      if (event === "SIGNED_OUT" || (!session && event !== "INITIAL_SESSION")) {
+        router.replace("/admin/login");
+      } else if (session) {
+        setIsCheckingAuth(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [isAuthPage, router]);
 
   // Reset Timer Inaktivitas
   const resetInactivityTimer = useCallback(() => {
@@ -129,9 +174,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }, INACTIVITY_TIMEOUT);
   }, [handleLogout]);
 
-  // Effect: Pasang Auto Logout Listener untuk aktivitas pengguna
+  // Listener Auto Logout karena Inaktivitas
   useEffect(() => {
-    if (isAuthPage) return;
+    if (isAuthPage || isCheckingAuth) return;
 
     const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
 
@@ -146,11 +191,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         window.removeEventListener(event, resetInactivityTimer);
       });
     };
-  }, [isAuthPage, resetInactivityTimer]);
+  }, [isAuthPage, isCheckingAuth, resetInactivityTimer]);
 
   // Bypass layout jika berada di halaman login admin
   if (isAuthPage) {
     return <>{children}</>;
+  }
+
+  // Tampilkan loading spinner jika sedang memverifikasi autentikasi
+  if (isCheckingAuth) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+          <p className="text-xs font-semibold text-gray-500">Memeriksa Akses Admin...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -203,7 +260,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )}
           </Link>
 
-          {/* Tombol Tutup Mobile */}
           <button
             onClick={() => setIsMobileOpen(false)}
             className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
@@ -211,7 +267,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <X className="h-5 w-5" />
           </button>
 
-          {/* Tombol Collapse Desktop */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="hidden rounded-xl border border-gray-200 bg-white p-1.5 text-gray-500 shadow-xs transition-all hover:bg-gray-50 hover:text-gray-900 lg:flex"
@@ -255,7 +310,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     />
                     {!isCollapsed && <span className="truncate">{item.title}</span>}
 
-                    {/* Tooltip Hover saat Sidebar Terlipat */}
                     {isCollapsed && (
                       <div className="pointer-events-none absolute left-full z-50 ml-3 rounded-xl border border-gray-200 bg-gray-900 px-3 py-1.5 text-xs whitespace-nowrap text-white opacity-0 shadow-xl transition-opacity group-hover:opacity-100">
                         {item.title}
@@ -268,7 +322,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </div>
 
-        {/* Footer Sidebar: Lihat Website & Logout */}
+        {/* Footer Sidebar */}
         <div className="space-y-2 border-t border-gray-100 p-3">
           <Link
             href="/"
@@ -302,7 +356,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Topbar Header */}
         <header className="z-30 flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-xs">
           <div className="flex items-center gap-3">
-            {/* Tombol Hamburger Mobile */}
             <button
               className="cursor-pointer text-gray-600 transition-colors hover:text-gray-900 lg:hidden"
               onClick={() => setIsMobileOpen(true)}
@@ -310,7 +363,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Menu className="h-6 w-6" />
             </button>
 
-            {/* Breadcrumbs */}
             <div className="hidden items-center gap-2 text-xs text-gray-500 sm:flex">
               <span className="font-semibold text-gray-700">Area Administrator</span>
               <span>/</span>
@@ -320,7 +372,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
 
-          {/* Profil Admin */}
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
               <p className="text-xs font-bold text-gray-900">Admin Realthink</p>
