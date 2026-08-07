@@ -17,6 +17,8 @@ import {
 
 export default function TitipPropertiPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
   const [formData, setFormData] = useState({
     judul: "",
     tipe: "Rumah",
@@ -38,10 +40,52 @@ export default function TitipPropertiPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulasi pengiriman data
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setServerError("");
+
+    try {
+      const payload = {
+        type: "TITIP_PROPERTY",
+        name: formData.namaPemilik,
+        whatsapp: formData.telepon,
+        email: "",
+        message: formData.deskripsi,
+        title: formData.judul,
+        property_type: formData.tipe,
+        transaction_type: formData.kategori,
+        price: formData.harga,
+        location: formData.lokasi,
+        bedrooms: formData.kamarTidur,
+        bathrooms: formData.kamarMandi,
+        land_area: formData.luasTanah,
+        building_area: formData.luasBangunan,
+        description: formData.deskripsi,
+        owner_name: formData.namaPemilik,
+        source: "Titip Properti",
+      };
+
+      const response = await fetch("/api/public/leads", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Gagal mengirim formulir.");
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      setServerError(error instanceof Error ? error.message : "Gagal mengirim formulir.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -73,14 +117,16 @@ export default function TitipPropertiPage() {
               Properti Berhasil Dititipkan!
             </h3>
             <p className="mx-auto max-w-md text-sm text-gray-600">
-              Terima kasih, <span className="font-semibold">{formData.namaPemilik}</span>. Tim
-              marketing kami akan segera meninjau informasi properti Anda dan menghubungi nomor{" "}
+              Terima kasih, <span className="font-semibold">{formData.namaPemilik}</span>. Data
+              properti Anda telah masuk ke sistem dan akan ditangani tim admin melalui dashboard CRM.
+              Kami akan segera meninjau informasi properti Anda dan menghubungi nomor{" "}
               <span className="font-semibold">{formData.telepon}</span>.
             </p>
             <div className="pt-4">
               <button
                 onClick={() => {
                   setSubmitted(false);
+                  setServerError("");
                   setFormData({
                     judul: "",
                     tipe: "Rumah",
@@ -314,13 +360,21 @@ export default function TitipPropertiPage() {
               </div>
             </div>
 
+            {serverError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {serverError}
+              </div>
+            )}
+
             {/* Tombol Submit */}
             <div className="pt-4">
               <button
                 type="submit"
-                className="bg-primary hover:bg-primary/90 shadow-primary/25 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white shadow-md transition-all"
+                disabled={isSubmitting}
+                className="bg-primary hover:bg-primary/90 shadow-primary/25 flex w-full items-center justify-center gap-2 rounded-xl py-3 font-medium text-white shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Send className="h-4 w-4" /> Kirim & Pasarkan Properti
+                <Send className="h-4 w-4" />
+                {isSubmitting ? "Mengirim data..." : "Kirim & Pasarkan Properti"}
               </button>
             </div>
           </form>

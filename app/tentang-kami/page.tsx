@@ -14,8 +14,7 @@ export default function AboutPage() {
             Partner Terpercaya Solusi Properti Anda
           </h1>
           <p className="text-sm leading-relaxed text-gray-600 md:text-base">
-            Kami hadir untuk membantu Anda menemukan hunian impian dan investasi properti bernilai
-            tinggi dengan proses yang transparan dan aman.
+            Realthink Property adalah partner terpercaya untuk kebutuhan jual, beli, dan sewa properti di Jakarta dan sekitarnya. Kami membantu setiap klien menemukan solusi properti yang tepat melalui layanan profesional, proses yang jelas, dan pendampingan dari awal hingga transaksi selesai.
           </p>
         </div>
 
@@ -25,10 +24,9 @@ export default function AboutPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 font-bold text-amber-600">
               <ShieldCheck className="h-5 w-5" />
             </div>
-            <h3 className="font-heading font-bold text-gray-900">Legalitas Terjamin</h3>
+            <h3 className="font-heading font-bold text-gray-900">Legalitas Terverifikasi</h3>
             <p className="text-xs leading-relaxed text-gray-500">
-              Setiap listing properti telah melalui proses verifikasi dokumen dan legalitas yang
-              lengkap.
+              Kami membantu memastikan dokumen dan legalitas properti agar transaksi berjalan lebih aman dan nyaman.
             </p>
           </div>
 
@@ -36,10 +34,9 @@ export default function AboutPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 font-bold text-amber-600">
               <Award className="h-5 w-5" />
             </div>
-            <h3 className="font-heading font-bold text-gray-900">Layanan Profesional</h3>
+            <h3 className="font-heading font-bold text-gray-900">Pendampingan Profesional</h3>
             <p className="text-xs leading-relaxed text-gray-500">
-              Agen berpengalaman kami siap memberikan konsultasi terbaik dari proses survei hingga
-              akad.
+              Tim kami siap mendampingi mulai dari konsultasi, survei, negosiasi, hingga proses akad.
             </p>
           </div>
 
@@ -47,9 +44,9 @@ export default function AboutPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 font-bold text-amber-600">
               <Users className="h-5 w-5" />
             </div>
-            <h3 className="font-heading font-bold text-gray-900">Transparansi Harga</h3>
+            <h3 className="font-heading font-bold text-gray-900">Proses Transparan</h3>
             <p className="text-xs leading-relaxed text-gray-500">
-              Jaminan harga transparan langsung dari pemilik tanpa biaya tersembunyi.
+              Setiap proses dilakukan secara terbuka dengan informasi yang jelas, sehingga Anda dapat bertransaksi dengan tenang.
             </p>
           </div>
         </div>

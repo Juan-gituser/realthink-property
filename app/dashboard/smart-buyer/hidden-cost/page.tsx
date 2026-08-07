@@ -1,4 +1,5 @@
 import { RoleGuard } from "@/components/auth/RoleGuard";
+import CalculatorDisclaimer from "@/components/CalculatorDisclaimer";
 import { Calculator, DollarSign } from "lucide-react";
 
 export default function SmartBuyerHiddenCostPage() {
@@ -59,6 +60,9 @@ export default function SmartBuyerHiddenCostPage() {
                 <span className="font-bold text-slate-300">Total Estimasi Hidden Cost:</span>
                 <span className="text-sm font-bold text-emerald-400">Rp 67.500.000</span>
               </div>
+            </div>
+            <div className="mt-4">
+              <CalculatorDisclaimer />
             </div>
             <button className="mt-4 w-full rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-blue-500">
               Simpan Rincian Biaya

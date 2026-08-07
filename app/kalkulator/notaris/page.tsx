@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Landmark, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import CalculatorDisclaimer from "@/components/CalculatorDisclaimer";
 
 const formatRupiahInput = (value: string | number) => {
   if (!value) return "";
@@ -33,10 +34,10 @@ export default function BiayaNotarisPage() {
     setHarga(parseRupiahInput(val));
   };
 
-  // Estimasi honorarium PPAT/Notaris max 1% (berdasarkan standar umum UU Jabatan PPAT)
+  // Estimasi honorarium PPAT/Notaris yang umum dipakai sebagai acuan kasar di Indonesia
   const honorPpat = harga * 0.01;
   const biayaSertifikat = 2500000; // Biaya pengecekan & validasi sertifikat di BPN
-  const biayaAktaKpr = transaksiType === "kpr" ? harga * 0.005 : 0; // Biaya Akta Jaminan / APHT jika KPR
+  const biayaAktaKpr = transaksiType === "kpr" ? harga * 0.005 : 0; // Biaya akta jaminan / APHT jika KPR
 
   const totalBiayaNotaris = honorPpat + biayaSertifikat + biayaAktaKpr;
 
@@ -141,6 +142,8 @@ export default function BiayaNotarisPage() {
               </div>
             </div>
           </div>
+
+          <CalculatorDisclaimer />
         </div>
       </div>
     </div>

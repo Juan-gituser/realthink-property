@@ -89,6 +89,11 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    scroll-behavior: smooth;
+  }
+
+  html {
+    background-color: var(--background);
   }
   h1,
   h2,

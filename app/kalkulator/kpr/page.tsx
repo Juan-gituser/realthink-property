@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Calculator, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import CalculatorDisclaimer from "@/components/CalculatorDisclaimer";
 
 // Fungsi helper untuk format harga properti (dengan titik ribuan)
 const formatRupiahInput = (value: string | number) => {
@@ -52,7 +53,7 @@ export default function KprCalculatorPage({ defaultHarga = 500000000 }: { defaul
   const bungaPerBulan = numericBunga / 100 / 12;
   const jumlahBulan = tenor * 12;
 
-  // Rumus Angsuran KPR Annuity
+  // Rumus angsuran KPR anuitas yang umum dipakai bank di Indonesia
   const cicilanPerBulan =
     pokokPinjaman > 0 && bungaPerBulan > 0
       ? (pokokPinjaman * bungaPerBulan * Math.pow(1 + bungaPerBulan, jumlahBulan)) /
@@ -188,6 +189,8 @@ export default function KprCalculatorPage({ defaultHarga = 500000000 }: { defaul
               </p>
             </div>
           </div>
+
+          <CalculatorDisclaimer />
         </div>
       </div>
     </div>

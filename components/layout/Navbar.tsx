@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -14,10 +14,11 @@ import {
   FileText,
   Landmark,
   TrendingUp,
-  Star,
   LogIn,
   User,
   Shield,
+  Scale,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,25 +27,37 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // State untuk menyimpan data user login & status admin
+  // State untuk menyimpan data user login, status admin, dan status loading
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const supabase = createClient();
+  // Inisialisasi Supabase client agar tidak re-create di setiap render
+  const supabase = useMemo(() => createClient(), []);
 
   // Pengecekan status login & role di Client Component
   useEffect(() => {
+    let isMounted = true;
+
     const checkUserAndRole = async (currentUser: SupabaseUser | null) => {
-      setUser(currentUser);
       if (!currentUser) {
-        setIsAdmin(false);
+        if (isMounted) {
+          setUser(null);
+          setIsAdmin(false);
+          setIsLoading(false);
+        }
         return;
       }
+
+      if (isMounted) setUser(currentUser);
 
       // 1. Cek role dari user_metadata
       const metadataRole = currentUser.user_metadata?.role;
       if (metadataRole === "admin" || metadataRole === "super_admin") {
-        setIsAdmin(true);
+        if (isMounted) {
+          setIsAdmin(true);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -54,19 +67,24 @@ export default function Navbar() {
           .from("profiles")
           .select("role")
           .eq("id", currentUser.id)
-          .single();
+          .maybeSingle();
 
-        if (profile?.role === "admin" || profile?.role === "super_admin") {
-          setIsAdmin(true);
-        } else {
-          setIsAdmin(false);
+        if (isMounted) {
+          if (profile?.role === "admin" || profile?.role === "super_admin") {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
         }
       } catch (error) {
         console.error("Gagal memuat profil role:", error);
-        setIsAdmin(false);
+        if (isMounted) setIsAdmin(false);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
+    // Ambil user saat awal render
     const getInitialUser = async () => {
       const {
         data: { user },
@@ -82,6 +100,7 @@ export default function Navbar() {
     });
 
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, [supabase]);
@@ -106,7 +125,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Nav - Disesuaikan jarak gap & text size agar proporsional */}
+        {/* Desktop Nav */}
         <nav className="hidden items-center gap-3.5 text-xs font-medium lg:flex xl:gap-5 xl:text-[13px]">
           <Link href="/" className="text-foreground hover:text-secondary whitespace-nowrap transition-colors">
             Beranda
@@ -120,8 +139,6 @@ export default function Navbar() {
           >
             Titip Properti
           </Link>
-
-          {/* Dropdown Tools Properti */}
 
           {/* Dropdown Tools Properti */}
           <div className="relative" onMouseLeave={() => setDropdownOpen(false)}>
@@ -156,6 +173,20 @@ export default function Navbar() {
                     <div>
                       <p className="font-bold">Kalkulator KPR</p>
                       <p className="text-muted-foreground text-[10px]">Simulasi cicilan bulanan</p>
+                    </div>
+                  </Link>
+
+                  <Link
+                    href="/properti/bandingkan"
+                    className="hover:bg-secondary/10 hover:text-secondary text-foreground flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    <div className="bg-secondary/10 text-secondary rounded-lg p-2">
+                      <Scale className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold">Bandingkan Properti</p>
+                      <p className="text-muted-foreground text-[10px]">Bandingkan fitur dan nilai properti</p>
                     </div>
                   </Link>
 
@@ -220,7 +251,11 @@ export default function Navbar() {
 
         {/* Tombol Auth / Panel Admin Desktop */}
         <div className="hidden shrink-0 items-center lg:flex">
-          {user ? (
+          {isLoading ? (
+            <div className="flex h-9 w-24 items-center justify-center rounded-full bg-slate-100">
+              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            </div>
+          ) : user ? (
             isAdmin ? (
               <Link
                 href="/admin"
@@ -290,8 +325,7 @@ export default function Navbar() {
               >
                 Titip Properti
               </Link>
-              
-              {/* Pricing Mobile Link */}
+
               {/* Sub-menu Tools Properti untuk Mobile */}
               <div className="border-border/50 flex flex-col gap-2 border-b py-2">
                 <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
@@ -303,6 +337,13 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   <Calculator className="text-secondary h-4 w-4" /> Kalkulator KPR
+                </Link>
+                <Link
+                  href="/properti/bandingkan"
+                  className="text-foreground hover:text-secondary flex items-center gap-2 py-1 pl-3 text-sm font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Scale className="text-secondary h-4 w-4" /> Bandingkan Properti
                 </Link>
                 <Link
                   href="/kalkulator/roi"
@@ -343,7 +384,11 @@ export default function Navbar() {
               </Link>
 
               {/* Tombol Auth / Panel Admin Mobile */}
-              {user ? (
+              {isLoading ? (
+                <div className="mt-3 flex items-center justify-center py-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                </div>
+              ) : user ? (
                 isAdmin ? (
                   <Link
                     href="/admin"

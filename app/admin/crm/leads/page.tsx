@@ -41,6 +41,7 @@ interface LeadItem {
   whatsapp: string;
   email?: string;
   source: LeadSource;
+  source_label?: string;
   budget_min?: number;
   budget_max?: number;
   preferred_area?: string;
@@ -79,6 +80,7 @@ const SOURCES: LeadSource[] = [
   "Agent",
   "Freelancer",
   "Other",
+  "Titip Properti",
 ];
 
 export default function AdminCRMLeadsPage() {
@@ -285,9 +287,17 @@ export default function AdminCRMLeadsPage() {
                         )}
                       </td>
                       <td className="px-4 py-4">
-                        <span className="inline-flex rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
-                          {lead.source}
-                        </span>
+                        <div className="flex flex-col gap-1.5">
+                          <span className="inline-flex w-fit rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+                            {lead.source}
+                          </span>
+                          {(lead.source === "Website" || lead.source === "Titip Properti") &&
+                            (lead.notes?.includes("Titip Properti") || lead.source === "Titip Properti") && (
+                              <span className="inline-flex w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                                Titip Properti
+                              </span>
+                            )}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         {propertyCount > 0 ? (

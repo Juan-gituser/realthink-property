@@ -68,14 +68,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/properti/bandingkan"
-                  className="hover:text-secondary transition-colors"
-                >
-                  Bandingkan Properti
-                </Link>
-              </li>
-              <li>
                 <Link href="/titip-properti" className="hover:text-secondary transition-colors">
                   Titip Jual / Sewa
                 </Link>
@@ -153,6 +145,14 @@ export default function Footer() {
                   className="hover:text-secondary flex items-center gap-1.5 transition-colors"
                 >
                   <Landmark className="text-secondary h-3.5 w-3.5 shrink-0" /> Biaya Notaris
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/properti/bandingkan"
+                  className="hover:text-secondary flex items-center gap-1.5 transition-colors"
+                >
+                  <Star className="text-secondary h-3.5 w-3.5 shrink-0" /> Bandingkan Properti
                 </Link>
               </li>
             </ul>

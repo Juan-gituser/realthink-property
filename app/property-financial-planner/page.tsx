@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PremiumGuard from "@/components/PremiumGuard";
+import CalculatorDisclaimer from "@/components/CalculatorDisclaimer";
 import { Calculator, Wallet, AlertTriangle, Percent, Info, ShieldCheck } from "lucide-react";
 
 // Fungsi Helper untuk format Rupiah (pemisah titik)
@@ -412,6 +413,7 @@ export default function PropertyFinancialPlannerPage() {
 
                 {/* Rekomendasi Cerdas */}
                 <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-xs">
+                  <CalculatorDisclaimer />
                   <h4 className="flex items-center gap-1.5 font-bold text-amber-900">
                     <ShieldCheck className="h-4 w-4 text-amber-700" /> Rekomendasi Pakar Realthink
                   </h4>

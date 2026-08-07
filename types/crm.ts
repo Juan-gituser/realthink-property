@@ -24,7 +24,8 @@ export type LeadSource =
   | "Referral"
   | "Agent"
   | "Freelancer"
-  | "Other";
+  | "Other"
+  | "Titip Properti";
 
 export type SurveyStatus =
   | "SCHEDULED"

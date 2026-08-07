@@ -1,43 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Calendar, ArrowRight, BookOpen } from "lucide-react";
-
-// Data Dummy Artikel & Edukasi Properti
-const LATEST_ARTICLES = [
-  {
-    id: "1",
-    title: "Tips Membeli Rumah Pertama untuk Generasi Milenial",
-    slug: "tips-membeli-rumah-pertama-milenial",
-    category: "Panduan Properti",
-    date: "20 Juli 2026",
-    imageUrl:
-      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80",
-    excerpt:
-      "Panduan lengkap memilih lokasi prospektif, simulasi KPR akurat, dan perencanaan keuangan jangka panjang.",
-  },
-  {
-    id: "2",
-    title: "Memahami Biaya Pajak BPHTB dan Notaris dalam Transaksi Jual Beli",
-    slug: "memahami-biaya-pajak-bphtb-dan-notaris",
-    category: "Legal & Pajak",
-    date: "18 Juli 2026",
-    imageUrl:
-      "https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=800&q=80",
-    excerpt:
-      "Ketahui rincian biaya tambahan dan kelengkapan legalitas dokumen sebelum melakukan transaksi properti.",
-  },
-  {
-    id: "3",
-    title: "Tren Desain Interior Rumah Minimalis Modern Tahun 2026",
-    slug: "tren-desain-interior-rumah-minimalis-2026",
-    category: "Inspirasi Desain",
-    date: "15 Juli 2026",
-    imageUrl:
-      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80",
-    excerpt:
-      "Inspirasi penataan ruang, pencahayaan alami, dan pemilihan furnitur hemat tempat untuk hunian impian Anda.",
-  },
-];
+import { LATEST_ARTICLES } from "@/data/articles";
 
 export default function LatestArticles() {
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,7 +46,9 @@ interface NavGroup {
   items: NavItem[];
 }
 
-// Group Menu Navigasi (Telah Diperbarui dengan Menu CRM Lengkap)
+// Durasi inaktivitas sebelum auto logout (15 Menit)
+const INACTIVITY_TIMEOUT = 15 * 60 * 1000;
+
 const menuGroups: NavGroup[] = [
   {
     label: "Dashboard",
@@ -108,22 +110,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Bypass layout jika berada di halaman login admin
-  if (pathname === "/admin/login") {
-    return <>{children}</>;
-  }
+  const isAuthPage = pathname === "/admin/login";
 
   // Handler Logout Supabase
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     router.push("/admin/login");
     router.refresh();
-  };
+  }, [router]);
+
+  // Reset Timer Inaktivitas
+  const resetInactivityTimer = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      handleLogout();
+    }, INACTIVITY_TIMEOUT);
+  }, [handleLogout]);
+
+  // Effect: Pasang Auto Logout Listener untuk aktivitas pengguna
+  useEffect(() => {
+    if (isAuthPage) return;
+
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+
+    resetInactivityTimer();
+    events.forEach((event) => {
+      window.addEventListener(event, resetInactivityTimer);
+    });
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      events.forEach((event) => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+    };
+  }, [isAuthPage, resetInactivityTimer]);
+
+  // Bypass layout jika berada di halaman login admin
+  if (isAuthPage) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 font-sans antialiased">
-      {/* Mobile Overlay (Semi transparan gelap halus) */}
+      {/* Mobile Overlay */}
       <AnimatePresence>
         {isMobileOpen && (
           <motion.div
@@ -136,7 +168,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )}
       </AnimatePresence>
 
-      {/* SIDEBAR CONTAINER (Clean Light Theme) */}
+      {/* SIDEBAR CONTAINER */}
       <motion.aside
         initial={false}
         animate={{

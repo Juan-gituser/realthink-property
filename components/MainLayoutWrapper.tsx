@@ -6,6 +6,7 @@ import Footer from "@/components/layout/Footer";
 import ComparisonBar from "@/components/shared/ComparisonBar";
 import FloatingConsultation from "@/components/FloatingConsultation";
 import PageWrapper from "@/components/PageWrapper";
+import PageTransition from "@/components/PageTransition";
 
 export default function MainLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,7 +18,7 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
 
   // Jika berada di dashboard/auth: Sembunyikan SEMUA elemen publik dan hapus padding PageWrapper
   if (hidePublicElements) {
-    return <>{children}</>;
+    return <PageTransition>{children}</PageTransition>;
   }
 
   // Untuk halaman publik biasa (Beranda, Katalog, Artikel, dll.)

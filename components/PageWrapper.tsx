@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import PageTransition from "@/components/PageTransition";
 
 export default function PageWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -12,5 +13,9 @@ export default function PageWrapper({ children }: { children: React.ReactNode })
   // Jika di halaman auth atau admin, hilangkan padding atas
   const removePadding = isAuthPage || isAdminPage;
 
-  return <main className={removePadding ? "" : "pt-16"}>{children}</main>;
+  return (
+    <PageTransition>
+      <main className={removePadding ? "" : "pt-16"}>{children}</main>
+    </PageTransition>
+  );
 }

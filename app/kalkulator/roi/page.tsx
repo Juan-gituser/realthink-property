@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, Calculator, ShieldCheck } from "lucide-react";
+import CalculatorDisclaimer from "@/components/CalculatorDisclaimer";
 
 export default function KalkulatorROIPage() {
   const [hargaBeli, setHargaBeli] = useState<string>("1.500.000.000");
@@ -167,6 +168,8 @@ export default function KalkulatorROIPage() {
                 </Link>
               </div>
             </div>
+
+            <CalculatorDisclaimer />
 
             <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
               <ShieldCheck className="h-5 w-5 shrink-0 text-amber-600" />

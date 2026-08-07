@@ -47,7 +47,30 @@ export const consultationSchema = z.object({
   message: z.string().optional(),
 });
 
-// 3. Schema Jadwalkan Survey
+// 3. Schema Titip Properti
+export const titipPropertySchema = z.object({
+  name: z.string().min(2, "Nama minimal 2 karakter"),
+  whatsapp: z
+    .string()
+    .min(9, "Nomor WhatsApp minimal 9 digit")
+    .max(15, "Nomor WhatsApp maksimal 15 digit"),
+  email: z.string().email("Format email tidak valid").optional().or(z.literal("")),
+  message: z.string().optional(),
+  title: z.string().min(1, "Judul properti wajib diisi"),
+  property_type: z.string().optional(),
+  transaction_type: z.string().optional(),
+  price: z.string().optional(),
+  location: z.string().optional(),
+  bedrooms: z.string().optional(),
+  bathrooms: z.string().optional(),
+  land_area: z.string().optional(),
+  building_area: z.string().optional(),
+  description: z.string().optional(),
+  owner_name: z.string().optional(),
+  source: z.string().optional(),
+});
+
+// 4. Schema Jadwalkan Survey
 export const scheduleSurveySchema = z.object({
   name: z.string().min(2, "Nama minimal 2 karakter"),
   whatsapp: z

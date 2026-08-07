@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FileText, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import CalculatorDisclaimer from "@/components/CalculatorDisclaimer";
 
 const formatRupiahInput = (value: string | number) => {
   if (!value) return "";
@@ -33,7 +34,7 @@ export default function PajakBphtbPage() {
     setHarga(parseRupiahInput(val));
   };
 
-  // Rumus BPHTB: 5% * (Harga Properti - NPOPTKP)
+  // Rumus BPHTB yang umum dipakai di Indonesia: 5% x (harga transaksi - NPOPTKP)
   const nilaiDasarKenaPajak = Math.max(0, harga - npoptkp);
   const totalBphtb = nilaiDasarKenaPajak * 0.05;
 
@@ -135,6 +136,8 @@ export default function PajakBphtbPage() {
               </div>
             </div>
           </div>
+
+          <CalculatorDisclaimer />
         </div>
       </div>
     </div>

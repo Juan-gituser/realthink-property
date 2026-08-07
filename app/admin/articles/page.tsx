@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -15,49 +15,98 @@ import {
   Calendar,
 } from "lucide-react";
 
-// Data Dummy Artikel Admin
-const INITIAL_ARTICLES = [
-  {
-    id: "1",
-    title: "Tips Membeli Rumah Pertama untuk Generasi Milenial",
-    slug: "tips-membeli-rumah-pertama-milenial",
-    category: "Panduan Properti",
-    author: "Tim Realthink",
-    status: "published" as const, // published | draft
-    publishedAt: "20 Jul 2026",
-    imageUrl:
-      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "2",
-    title: "Memahami Biaya Pajak BPHTB dan Notaris dalam Transaksi Jual Beli",
-    slug: "memahami-biaya-pajak-bphtb-dan-notaris",
-    category: "Legal & Pajak",
-    author: "Tim Realthink",
-    status: "published" as const,
-    publishedAt: "18 Jul 2026",
-    imageUrl:
-      "https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=300&q=80",
-  },
-  {
-    id: "3",
-    title: "Tren Desain Interior Rumah Minimalis Modern Tahun 2026",
-    slug: "tren-desain-interior-rumah-minimalis-2026",
-    category: "Inspirasi Desain",
-    author: "Tim Realthink",
-    status: "draft" as const,
-    publishedAt: "15 Jul 2026",
-    imageUrl:
-      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=300&q=80",
-  },
-];
+interface AdminArticleItem {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  author: string;
+  status: "published" | "draft";
+  published_at: string | null;
+  cover_image: string | null;
+}
 
 export default function AdminArticlesPage() {
-  const [articles, setArticles] = useState(INITIAL_ARTICLES);
+  const [articles, setArticles] = useState<AdminArticleItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [selectedStatus, setSelectedStatus] = useState("Semua");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [, setDeleteLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchArticles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const query = new URLSearchParams();
+      if (selectedStatus !== "Semua") {
+        query.set("status", selectedStatus);
+      }
+      if (selectedCategory !== "Semua") {
+        query.set("category", selectedCategory);
+      }
+      if (searchQuery.trim()) {
+        query.set("query", searchQuery.trim());
+      }
+
+      const response = await fetch(`/api/admin/articles?${query.toString()}`);
+
+      // Mencegah throw error jika response status bukan OK (misal 404/500)
+      if (!response.ok) {
+        const errorJson = await response.json().catch(() => null);
+        setError(
+          errorJson?.error || `Gagal memuat artikel. (Status: ${response.status})`
+        );
+        return;
+      }
+
+      const json = await response.json();
+
+      if (!json.success) {
+        setError(json.error || "Gagal memuat daftar artikel.");
+        return;
+      }
+
+      setArticles(json.data ?? []);
+    } catch (err) {
+      console.error(err);
+      setError("Terjadi kesalahan koneksi saat memuat artikel.");
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, selectedCategory, selectedStatus]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      await fetchArticles();
+    };
+
+    if (isMounted) {
+      loadData();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchArticles]);
+
+  const formatPublishedDate = (publishedAt: string | null) => {
+    if (!publishedAt) return "-";
+    try {
+      return new Intl.DateTimeFormat("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(publishedAt));
+    } catch {
+      return publishedAt;
+    }
+  };
 
   // Filter Data
   const filteredArticles = useMemo(() => {
@@ -71,9 +120,39 @@ export default function AdminArticlesPage() {
   }, [articles, searchQuery, selectedCategory, selectedStatus]);
 
   // Handler Hapus
-  const handleDelete = (id: string) => {
-    setArticles((prev) => prev.filter((a) => a.id !== id));
-    setDeleteId(null);
+  const handleDelete = async (id: string | null) => {
+    if (!id) return;
+
+    setDeleteLoading(true);
+    setError(null);
+
+    try {
+      const query = new URLSearchParams({ id });
+      const response = await fetch(`/api/admin/articles?${query.toString()}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorJson = await response.json().catch(() => null);
+        setError(errorJson?.error || "Gagal menghapus artikel.");
+        return;
+      }
+
+      const json = await response.json();
+
+      if (!json.success) {
+        setError(json.error || "Gagal menghapus artikel.");
+        return;
+      }
+
+      setArticles((prev) => prev.filter((a) => a.id !== id));
+      setDeleteId(null);
+    } catch (err) {
+      console.error(err);
+      setError("Gagal menghapus artikel. Silakan coba lagi.");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   return (
@@ -190,15 +269,26 @@ export default function AdminArticlesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-sm">
-              {filteredArticles.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                    Memuat artikel...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-red-500">
+                    {error}
+                  </td>
+                </tr>
+              ) : filteredArticles.length > 0 ? (
                 filteredArticles.map((article) => (
                   <tr key={article.id} className="transition hover:bg-gray-50/80">
-                    {/* Thumbnail & Title */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
                           <Image
-                            src={article.imageUrl}
+                            src={article.cover_image || "/placeholder-property.jpg"}
                             alt={article.title}
                             fill
                             className="object-cover"
@@ -209,18 +299,12 @@ export default function AdminArticlesPage() {
                         </p>
                       </div>
                     </td>
-
-                    {/* Category */}
                     <td className="p-4 whitespace-nowrap">
                       <span className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
                         {article.category}
                       </span>
                     </td>
-
-                    {/* Author */}
                     <td className="p-4 whitespace-nowrap text-gray-600">{article.author}</td>
-
-                    {/* Status */}
                     <td className="p-4 whitespace-nowrap">
                       {article.status === "published" ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
@@ -234,16 +318,12 @@ export default function AdminArticlesPage() {
                         </span>
                       )}
                     </td>
-
-                    {/* Date */}
                     <td className="p-4 text-xs whitespace-nowrap text-gray-500">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                        {article.publishedAt}
+                        {formatPublishedDate(article.published_at)}
                       </div>
                     </td>
-
-                    {/* Action */}
                     <td className="p-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
                         <Link
