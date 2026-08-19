@@ -44,6 +44,13 @@ async function getPropertyBySlug(slug: string) {
     imageUrl:
       data.image_url ||
       "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
+    
+    // 🟢 PERBAIKAN UTAMA: Ambil array images dari database, 
+    // fallback ke array yang berisi imageUrl jika kolom images kosong/null
+    images: Array.isArray(data.images) && data.images.length > 0
+      ? data.images 
+      : [data.image_url || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80"],
+
     status: (data.status === "disewa" ? "disewa" : "dijual") as "dijual" | "disewa",
     category: data.category || "Rumah",
     legality: data.legality || "SHM",

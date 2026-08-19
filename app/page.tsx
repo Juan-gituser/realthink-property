@@ -48,7 +48,15 @@ interface PropertyRow {
   is_featured?: boolean;
 }
 
-// Fungsi Fetch Properti Unggulan dari Supabase dengan createClient terbaru
+export interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  count: number;
+}
+
+// Fetch Properti Unggulan dari Supabase
 async function getFeaturedProperties() {
   const supabase = createClient();
 
@@ -57,16 +65,13 @@ async function getFeaturedProperties() {
     .select("*")
     .eq("is_featured", true)
     .order("created_at", { ascending: false })
-    .limit(6); // Batasi jumlah properti unggulan yang tampil
+    .limit(6);
 
-  if (error) {
+  if (error || !data) {
     console.error("Gagal memuat properti unggulan:", error);
     return [];
   }
 
-  if (!data) return [];
-
-  // Mapping data dengan konversi price menjadi string
   return (data as PropertyRow[]).map((item) => ({
     id: String(item.id),
     title: item.title,
@@ -86,8 +91,55 @@ async function getFeaturedProperties() {
   }));
 }
 
+// 🟢 FUNGSI DINAMIS: Fetch Kategori dari tabel `categories` & Hitung Jumlah Listing
+async function getDynamicCategories(): Promise<CategoryItem[]> {
+  const supabase = createClient();
+
+  // 1. Ambil semua kategori yang ada di Admin
+  const { data: dbCategories, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error || !dbCategories) {
+    console.error("Gagal memuat kategori:", error);
+    return [];
+  }
+
+  // 2. Hitung jumlah listing per kategori secara paralel
+  const categoriesWithCount = await Promise.all(
+    dbCategories.map(async (cat) => {
+      let count = 0;
+      try {
+        const { count: propCount } = await supabase
+          .from("properties")
+          .select("id", { count: "exact", head: true })
+          .or(`category_id.eq.${cat.id},category_slug.eq.${cat.slug},category.ilike.%${cat.name.split(" ")[0]}%`);
+
+        count = propCount || 0;
+      } catch {
+        count = 0;
+      }
+
+      return {
+        id: String(cat.id),
+        name: cat.name,
+        slug: cat.slug,
+        description: cat.description || "",
+        count,
+      };
+    })
+  );
+
+  return categoriesWithCount;
+}
+
 export default async function Home() {
-  const featuredProperties = await getFeaturedProperties();
+  // Fetch data secara simultan
+  const [featuredProperties, categories] = await Promise.all([
+    getFeaturedProperties(),
+    getDynamicCategories(),
+  ]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -110,16 +162,17 @@ export default async function Home() {
 
   return (
     <>
-      {/* Schema Structured Data JSON-LD untuk SEO Real Estate Agent */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Main Landing Page Realthink Property */}
       <div className="flex flex-col gap-16 pb-16 md:gap-24">
         <HeroSection />
-        <PropertyCategories />
+        
+        {/* 🟢 Kirim array data kategori dinamis ke komponen PropertyCategories */}
+        <PropertyCategories categories={categories} />
+        
         <FeaturedProperties properties={featuredProperties} />
         <WhyChooseUs />
         <LatestProperties />

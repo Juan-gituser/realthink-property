@@ -8,13 +8,11 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  MessageSquare,
   User,
   Building,
   Phone,
   X,
   Loader2,
-  AlertCircle,
 } from "lucide-react";
 
 interface Lead {
@@ -27,10 +25,9 @@ interface Lead {
 interface FollowUp {
   id: string;
   lead_id: string;
-  date: string;
-  time: string;
+  schedule_date: string;
   notes: string;
-  pic: string;
+  assigned_to: string;
   status: "PENDING" | "COMPLETED" | "CANCELLED";
   created_at?: string;
   leads?: Lead;
@@ -43,7 +40,6 @@ export default function FollowUpsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
-  // State Modal Tambah
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -51,10 +47,9 @@ export default function FollowUpsPage() {
     date: new Date().toISOString().split("T")[0],
     time: "10:00",
     notes: "",
-    pic: "",
+    assigned_to: "",
   });
 
-  // Fetch data follow-ups dari API
   const fetchFollowUps = async () => {
     setLoading(true);
     try {
@@ -70,7 +65,6 @@ export default function FollowUpsPage() {
     }
   };
 
-  // Fetch daftar Leads untuk dropdown pendaftaran
   const fetchLeads = async () => {
     try {
       const res = await fetch("/api/admin/crm/leads");
@@ -87,7 +81,6 @@ export default function FollowUpsPage() {
     const timeoutId = window.setTimeout(() => {
       void fetchFollowUps();
     }, 0);
-
     return () => window.clearTimeout(timeoutId);
   }, [statusFilter]);
 
@@ -95,11 +88,9 @@ export default function FollowUpsPage() {
     const timeoutId = window.setTimeout(() => {
       void fetchLeads();
     }, 0);
-
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  // Handle pembuatan Follow Up baru
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.lead_id || !formData.date || !formData.time) {
@@ -107,12 +98,21 @@ export default function FollowUpsPage() {
       return;
     }
 
+    const combinedDateTime = new Date(`${formData.date}T${formData.time}:00`).toISOString();
+
+    const payload = {
+      lead_id: formData.lead_id,
+      schedule_date: combinedDateTime,
+      notes: formData.notes,
+      assigned_to: formData.assigned_to,
+    };
+
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/admin/crm/follow-ups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
@@ -123,8 +123,11 @@ export default function FollowUpsPage() {
           date: new Date().toISOString().split("T")[0],
           time: "10:00",
           notes: "",
-          pic: "",
+          assigned_to: "",
         });
+
+        alert("Jadwal follow-up berhasil disimpan!");
+        setStatusFilter("PENDING");
         fetchFollowUps();
       } else {
         alert(json.error || "Gagal menambah follow up");
@@ -137,7 +140,6 @@ export default function FollowUpsPage() {
     }
   };
 
-  // Handle ubah status (misal PENDING -> COMPLETED)
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
       const res = await fetch("/api/admin/crm/follow-ups", {
@@ -148,6 +150,7 @@ export default function FollowUpsPage() {
 
       const json = await res.json();
       if (json.success) {
+        alert("Status follow-up berhasil diperbarui!");
         fetchFollowUps();
       } else {
         alert(json.error || "Gagal memperbarui status");
@@ -157,14 +160,13 @@ export default function FollowUpsPage() {
     }
   };
 
-  // Filter hasil pencarian
   const filteredFollowUps = followUps.filter((item) => {
     const leadName = item.leads?.name?.toLowerCase() || "";
     const notes = item.notes?.toLowerCase() || "";
-    const pic = item.pic?.toLowerCase() || "";
+    const assignedTo = item.assigned_to?.toLowerCase() || "";
     const query = search.toLowerCase();
 
-    return leadName.includes(query) || notes.includes(query) || pic.includes(query);
+    return leadName.includes(query) || notes.includes(query) || assignedTo.includes(query);
   });
 
   return (
@@ -172,9 +174,6 @@ export default function FollowUpsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
         <div>
-          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
-            CRM Module
-          </span>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Clock className="h-6 w-6 text-amber-500" /> Follow-Up Schedule
           </h1>
@@ -195,7 +194,6 @@ export default function FollowUpsPage() {
       <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-5">
         {/* Filter & Search Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Search Input */}
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <input
@@ -207,7 +205,6 @@ export default function FollowUpsPage() {
             />
           </div>
 
-          {/* Status Tabs */}
           <div className="flex items-center bg-gray-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
             {["ALL", "PENDING", "COMPLETED", "CANCELLED"].map((st) => (
               <button
@@ -225,7 +222,7 @@ export default function FollowUpsPage() {
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* Loading / Empty / Table */}
         {loading ? (
           <div className="flex items-center justify-center py-16 text-gray-400 text-xs gap-2">
             <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
@@ -240,100 +237,107 @@ export default function FollowUpsPage() {
             </p>
           </div>
         ) : (
-          /* Table / List Follow Up */
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-semibold">
+                <tr className="border-b border-gray-100 bg-gray-50 text-gray-500 font-semibold text-center">
                   <th className="p-3 rounded-l-xl">Lead / Prospek</th>
                   <th className="p-3">Jadwal</th>
                   <th className="p-3">Catatan & PIC</th>
                   <th className="p-3">Status</th>
-                  <th className="p-3 text-right rounded-r-xl">Aksi</th>
+                  <th className="p-3 rounded-r-xl">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredFollowUps.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50/50 transition">
-                    {/* Lead Info */}
-                    <td className="p-3">
-                      <div className="font-bold text-gray-900 flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5 text-gray-400" />
-                        {item.leads?.name || "Lead Tidak Ditemukan"}
-                      </div>
-                      {item.leads?.property_title && (
-                        <div className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
-                          <Building className="h-3 w-3 text-amber-500" />
-                          {item.leads.property_title}
+                {filteredFollowUps.map((item) => {
+                  const dateObj = item.schedule_date ? new Date(item.schedule_date) : null;
+                  const formattedDate = dateObj
+                    ? dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+                    : "-";
+                  const formattedTime = dateObj
+                    ? dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false })
+                    : "-";
+
+                  return (
+                    <tr key={item.id} className="hover:bg-gray-50/50 transition">
+                      {/* Lead Info */}
+                      <td className="p-3">
+                        <div className="font-bold text-gray-900 flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-gray-400" />
+                          {item.leads?.name || "Lead Tidak Ditemukan"}
                         </div>
-                      )}
-                    </td>
+                        {item.leads?.property_title && (
+                          <div className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                            <Building className="h-3 w-3 text-amber-500" />
+                            {item.leads.property_title}
+                          </div>
+                        )}
+                      </td>
 
-                    {/* Schedule */}
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="font-semibold text-gray-800 flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-blue-500" />
-                        {item.date}
-                      </div>
-                      <div className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
-                        <Clock className="h-3 w-3 text-gray-400" />
-                        Pkl {item.time}
-                      </div>
-                    </td>
+                      {/* Schedule */}
+                      <td className="p-3 whitespace-nowrap">
+                        <div className="font-semibold text-gray-800 flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                          {formattedDate}
+                        </div>
+                        <div className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                          <Clock className="h-3 w-3 text-gray-400" />
+                          Pkl {formattedTime}
+                        </div>
+                      </td>
 
-                    {/* Notes & PIC */}
-                    <td className="p-3 max-w-xs">
-                      <p className="text-gray-700 line-clamp-2">{item.notes || "-"}</p>
-                      <span className="inline-block text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md mt-1 font-medium">
-                        PIC: {item.pic || "Tanpa PIC"}
-                      </span>
-                    </td>
-
-                    {/* Status Badge */}
-                    <td className="p-3 whitespace-nowrap">
-                      {item.status === "COMPLETED" && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200">
-                          <CheckCircle2 className="h-3 w-3" /> Selesai
+                      {/* Notes & assigned_to */}
+                      <td className="p-3 max-w-xs">
+                        <p className="text-gray-700 line-clamp-2">{item.notes || "-"}</p>
+                        <span className="inline-block text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md mt-1 font-medium">
+                          PIC: {item.assigned_to || "Tanpa PIC"}
                         </span>
-                      )}
-                      {item.status === "PENDING" && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <Clock className="h-3 w-3" /> Pending
-                        </span>
-                      )}
-                      {item.status === "CANCELLED" && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
-                          <XCircle className="h-3 w-3" /> Batal
-                        </span>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* Actions */}
-                    <td className="p-3 text-right whitespace-nowrap space-x-2">
-                      {/* WhatsApp Direct Link */}
-                      {item.leads?.whatsapp && (
-                        <a
-                          href={`https://wa.me/${item.leads.whatsapp.replace(/\D/g, "")}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-green-500 text-white font-semibold text-[11px] hover:bg-green-600 transition"
-                        >
-                          <Phone className="h-3 w-3" /> WA
-                        </a>
-                      )}
+                      {/* Status Badge */}
+                      <td className="p-3 whitespace-nowrap">
+                        {item.status === "COMPLETED" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            <CheckCircle2 className="h-3 w-3" /> Selesai
+                          </span>
+                        )}
+                        {item.status === "PENDING" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                            <Clock className="h-3 w-3" /> Pending
+                          </span>
+                        )}
+                        {item.status === "CANCELLED" && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                            <XCircle className="h-3 w-3" /> Batal
+                          </span>
+                        )}
+                      </td>
 
-                      {/* Complete Button */}
-                      {item.status === "PENDING" && (
-                        <button
-                          onClick={() => handleUpdateStatus(item.id, "COMPLETED")}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-[11px] transition cursor-pointer"
-                        >
-                          <CheckCircle2 className="h-3 w-3" /> Selesai
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      {/* Actions */}
+                      <td className="p-3 text-right whitespace-nowrap space-x-2">
+                        {item.leads?.whatsapp && (
+                          <a
+                            href={`https://wa.me/${item.leads.whatsapp.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 text-white font-semibold text-[11px] hover:bg-emerald-700 transition shadow-sm"
+                          >
+                            <Phone className="h-3 w-3" /> WhatsApp
+                          </a>
+                        )}
+
+                        {item.status === "PENDING" && (
+                          <button
+                            onClick={() => handleUpdateStatus(item.id, "COMPLETED")}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold text-[11px] transition cursor-pointer"
+                          >
+                            <CheckCircle2 className="h-3 w-3" /> Selesai
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -361,7 +365,6 @@ export default function FollowUpsPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-              {/* Select Lead */}
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">
                   Pilih Lead / Prospek <span className="text-red-500">*</span>
@@ -381,7 +384,6 @@ export default function FollowUpsPage() {
                 </select>
               </div>
 
-              {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-gray-700 mb-1">
@@ -409,7 +411,6 @@ export default function FollowUpsPage() {
                 </div>
               </div>
 
-              {/* PIC */}
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">
                   PIC / Penanggung Jawab
@@ -417,27 +418,25 @@ export default function FollowUpsPage() {
                 <input
                   type="text"
                   placeholder="Contoh: Sales Admin / Agent Ahmad"
-                  value={formData.pic}
-                  onChange={(e) => setFormData({ ...formData, pic: e.target.value })}
+                  value={formData.assigned_to}
+                  onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
-              {/* Notes */}
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">
                   Catatan / Agenda Interaksi
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Contoh: Telepon ulang untuk mengonfirmasi ketersediaan survei lokasi unit tipe 36..."
+                  placeholder="Contoh: Telepon ulang untuk mengonfirmasi ketersediaan survei..."
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 focus:border-amber-500 focus:outline-none resize-none"
                 />
               </div>
 
-              {/* Buttons */}
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"

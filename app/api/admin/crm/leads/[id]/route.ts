@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+// Inisialisasi Supabase Client (Mendukung Service Role Key untuk bypass RLS)
 async function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (serviceRoleKey) {
+    return createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+  }
+
   const cookieStore = await cookies();
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -22,6 +33,20 @@ async function getSupabase() {
       },
     }
   );
+}
+
+// Helper ekstraksi pesan eror Supabase (PostgrestError/Error)
+function parseErrorMessage(err: unknown): string {
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    if ("message" in err && typeof (err as { message: unknown }).message === "string") {
+      return (err as { message: string }).message;
+    }
+    if ("details" in err && typeof (err as { details: unknown }).details === "string") {
+      return (err as { details: string }).details;
+    }
+  }
+  return "Terjadi kesalahan pada server";
 }
 
 // GET: Lead Detail + Attached Properties + Activities + Surveys + Commissions
@@ -54,7 +79,7 @@ export async function GET(
 
     if (leadErr || !lead) {
       return NextResponse.json(
-        { success: false, error: "Lead tidak ditemukan" },
+        { success: false, error: leadErr?.message || "Lead tidak ditemukan" },
         { status: 404 }
       );
     }
@@ -89,12 +114,11 @@ export async function GET(
       },
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Error fetching lead detail";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: parseErrorMessage(err) }, { status: 500 });
   }
 }
 
-// PATCH: Update Lead Status / PIC / Follow up & Log Activity
+// PATCH: Update Lead Status / PIC / Follow up / Properti Minat & Log Activity
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -104,15 +128,75 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const { status, assigned_to, notes, next_follow_up_at, last_contact_at, budget_min, budget_max } = body;
+    const {
+      status,
+      assigned_to,
+      notes,
+      next_follow_up_at,
+      last_contact_at,
+      budget_min,
+      budget_max,
+      property_ids,
+      interest_status,
+    } = body;
 
-    // Fetch existing state to check for activity logs
-    const { data: currentLead } = await supabase
-      .from("leads")
-      .select("status, assigned_to")
-      .eq("id", id)
-      .single();
+    // 1. Update relasi properti minat jika property_ids dikirim
+    if (Array.isArray(property_ids)) {
+      // Normalisasi payload: pastikan hanya berisi array string ID
+      const cleanPropertyIds: string[] = property_ids
+        .map((item) => (typeof item === "object" && item !== null ? item.id : item))
+        .filter((val): val is string => typeof val === "string" && val.trim().length > 0);
 
+      // Hapus relasi lama pada tabel lead_properties
+      const { error: deleteErr } = await supabase
+        .from("lead_properties")
+        .delete()
+        .eq("lead_id", id);
+
+      if (deleteErr) {
+        console.error("Gagal DELETE lead_properties:", deleteErr);
+        throw deleteErr;
+      }
+
+      // Insert relasi baru jika array tidak kosong
+      if (cleanPropertyIds.length > 0) {
+        // Menggunakan "INTERESTED" (uppercase) sesuai dengan check constraint DB
+        const defaultStatus =
+          typeof interest_status === "string"
+            ? interest_status.toUpperCase()
+            : "INTERESTED";
+
+        const rowsToInsert = cleanPropertyIds.map((propertyId: string) => ({
+          id: crypto.randomUUID(),
+          lead_id: id,
+          property_id: propertyId,
+          interest_status: defaultStatus,
+          created_at: new Date().toISOString(),
+        }));
+
+        const { error: insertErr } = await supabase
+          .from("lead_properties")
+          .insert(rowsToInsert);
+
+        if (insertErr) {
+          console.error("Gagal INSERT lead_properties:", insertErr);
+          throw insertErr;
+        }
+      }
+    }
+
+    // 2. Ambil state lama jika ada perubahan status untuk log
+    let currentLead = null;
+    if (status !== undefined) {
+      const { data } = await supabase
+        .from("leads")
+        .select("status, assigned_to")
+        .eq("id", id)
+        .single();
+      currentLead = data;
+    }
+
+    // 3. Susun data update untuk tabel leads
     const updates: Record<string, unknown> = {};
     if (status !== undefined) updates.status = status;
     if (assigned_to !== undefined) updates.assigned_to = assigned_to;
@@ -122,16 +206,24 @@ export async function PATCH(
     if (budget_min !== undefined) updates.budget_min = budget_min;
     if (budget_max !== undefined) updates.budget_max = budget_max;
 
-    const { data: updatedLead, error } = await supabase
-      .from("leads")
-      .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+    let updatedLead = null;
 
-    if (error) throw error;
+    if (Object.keys(updates).length > 0) {
+      const { data, error } = await supabase
+        .from("leads")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
 
-    // Log Activity if status changed
+      if (error) {
+        console.error("Gagal UPDATE leads:", error);
+        throw error;
+      }
+      updatedLead = data;
+    }
+
+    // 4. Log Activity jika status berubah
     if (status && currentLead && currentLead.status !== status) {
       await supabase.from("activities").insert({
         lead_id: id,
@@ -142,7 +234,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: updatedLead });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Update failed";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    console.error("PATCH Lead Internal Error:", err);
+    return NextResponse.json({ success: false, error: parseErrorMessage(err) }, { status: 500 });
   }
 }

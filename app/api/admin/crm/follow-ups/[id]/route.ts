@@ -13,21 +13,25 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const leadId = searchParams.get("lead_id");
+    const status = searchParams.get("status");
 
     let query = supabase
       .from("follow_ups")
-      .select("*, leads(name, whatsapp, property_title)")
-      .order("date", { ascending: true })
-      .order("time", { ascending: true });
+      .select("*, leads(name, whatsapp, property_type)")
+      .order("created_at", { ascending: false });
 
     if (leadId) {
       query = query.eq("lead_id", leadId);
     }
 
+    if (status && status !== "ALL") {
+      query = query.eq("status", status);
+    }
+
     const { data, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: data || [] });
   } catch (err: unknown) {
     return NextResponse.json(
       { success: false, error: err instanceof Error ? err.message : "Gagal mengambil data follow up" },
@@ -46,25 +50,23 @@ export async function POST(req: Request) {
     );
 
     const body = await req.json();
-    const { lead_id, date, time, notes, pic } = body;
+    const { lead_id, survey_id, notes, status } = body;
 
-    if (!lead_id || !date || !time) {
+    if (!lead_id) {
       return NextResponse.json(
-        { success: false, error: "Lead, tanggal, dan jam wajib diisi." },
+        { success: false, error: "Lead ID wajib diisi." },
         { status: 400 }
       );
     }
 
-    // 1. Simpan Follow Up
+    // 1. Simpan Follow Up (Menyesuaikan kolom riil: lead_id, survey_id, notes, status)
     const { data: followUp, error: followUpErr } = await supabase
       .from("follow_ups")
       .insert({
         lead_id,
-        date,
-        time,
-        notes,
-        pic,
-        status: "PENDING",
+        survey_id: survey_id || null,
+        notes: notes || "",
+        status: status || "PENDING",
       })
       .select()
       .single();
@@ -75,7 +77,7 @@ export async function POST(req: Request) {
     await supabase.from("activities").insert({
       lead_id,
       type: "NOTE",
-      description: `Follow Up dijadwalkan untuk ${date} pkl ${time} (${pic || "Tanpa PIC"})`,
+      description: `Follow Up dicatat dengan status: ${status || "PENDING"}`,
     });
 
     return NextResponse.json({ success: true, data: followUp });

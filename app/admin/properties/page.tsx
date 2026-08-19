@@ -15,6 +15,7 @@ import {
   Ban,
   Star,
   Loader2,
+  Globe, // <-- Ditambahkan
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -45,6 +46,7 @@ interface SupabasePropertyRow {
   updated_at?: string;
   created_at?: string;
   image_url?: string;
+  images?: any;
 }
 
 // Helper untuk format angka ke Rupiah
@@ -62,7 +64,9 @@ export default function AdminPropertiesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedListingStatus, setSelectedListingStatus] = useState("Semua");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
+
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Mengambil data dari Supabase
   useEffect(() => {
@@ -84,25 +88,43 @@ export default function AdminPropertiesPage() {
         }
 
         if (data) {
-          const formattedData: Property[] = (data as SupabasePropertyRow[]).map((item) => ({
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            price: item.price,
-            category: item.category,
-            status: item.status || "dijual",
-            listingStatus: item.listing_status || "published",
-            city: item.city,
-            isFeatured: item.is_featured || false,
-            updatedAt: new Date(item.updated_at || item.created_at || Date.now()).toLocaleDateString("id-ID", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            }),
-            imageUrl:
-              item.image_url ||
-              "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=300&q=80",
-          }));
+          const formattedData: Property[] = (data as SupabasePropertyRow[]).map((item) => {
+            let parsedUrl = "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=300&q=80";
+            const rawImages = item.images || item.image_url;
+
+            if (Array.isArray(rawImages) && rawImages.length > 0) {
+              parsedUrl = rawImages[0];
+            } else if (typeof rawImages === "string" && rawImages.trim() !== "") {
+              try {
+                const parsed = JSON.parse(rawImages);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  parsedUrl = parsed[0];
+                } else {
+                  parsedUrl = rawImages;
+                }
+              } catch {
+                parsedUrl = rawImages;
+              }
+            }
+
+            return {
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+              price: item.price,
+              category: item.category || "Uncategorized",
+              status: item.status || "dijual",
+              listingStatus: item.listing_status || "draft",
+              city: item.city || "Tidak ada kota",
+              isFeatured: item.is_featured || false,
+              updatedAt: new Date(item.updated_at || item.created_at || Date.now()).toLocaleDateString("id-ID", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              }),
+              imageUrl: parsedUrl,
+            };
+          });
 
           setProperties(formattedData);
         }
@@ -130,7 +152,9 @@ export default function AdminPropertiesPage() {
       const matchesStatus =
         selectedListingStatus === "Semua" || item.listingStatus === selectedListingStatus;
 
-      const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
+      const matchesCategory =
+        selectedCategory === "Semua" ||
+        item.category.toLowerCase() === selectedCategory.toLowerCase();
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -138,6 +162,7 @@ export default function AdminPropertiesPage() {
 
   // Handler Hapus Properti
   const handleDelete = async (id: string) => {
+    setIsDeleting(true);
     try {
       const supabase = createClient();
       const { error } = await supabase.from("properties").delete().eq("id", id);
@@ -151,6 +176,8 @@ export default function AdminPropertiesPage() {
       setDeleteId(null);
     } catch (err: unknown) {
       console.error("Error deleting property:", err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -168,6 +195,36 @@ export default function AdminPropertiesPage() {
       );
     } else {
       alert("Gagal memperbarui status unggulan: " + error.message);
+    }
+  };
+
+  // Handler Toggle Status Publish / Draft (Baru)
+  const handleTogglePublish = async (
+    propertyId: string,
+    currentListingStatus: "published" | "draft" | "sold"
+  ) => {
+    const newStatus: "published" | "draft" =
+      currentListingStatus === "published" ? "draft" : "published";
+
+    // Update state lokal lebih dulu (Optimistic UI Update)
+    setProperties((prev) =>
+      prev.map((p) => (p.id === propertyId ? { ...p, listingStatus: newStatus } : p))
+    );
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("properties")
+      .update({ listing_status: newStatus, updated_at: new Date().toISOString() })
+      .eq("id", propertyId);
+
+    if (error) {
+      alert("Gagal memperbarui status publish: " + error.message);
+      // Rollback jika terjadi kegagalan API
+      setProperties((prev) =>
+        prev.map((p) =>
+          p.id === propertyId ? { ...p, listingStatus: currentListingStatus } : p
+        )
+      );
     }
   };
 
@@ -323,6 +380,7 @@ export default function AdminPropertiesPage() {
                             src={property.imageUrl}
                             alt={property.title}
                             fill
+                            unoptimized
                             className="object-cover"
                           />
                         </div>
@@ -396,6 +454,23 @@ export default function AdminPropertiesPage() {
                     {/* Action Buttons */}
                     <td className="p-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-2">
+                        {/* Toggle Quick Publish / Draft (Baru) */}
+                        <button
+                          onClick={() => handleTogglePublish(property.id, property.listingStatus)}
+                          title={
+                            property.listingStatus === "published"
+                              ? "Tarik dari Website (Jadikan Draft)"
+                              : "Terbitkan ke Website (Publish)"
+                          }
+                          className={`rounded-lg p-2 transition cursor-pointer ${
+                            property.listingStatus === "published"
+                              ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                              : "text-gray-500 hover:bg-amber-50 hover:text-amber-600"
+                          }`}
+                        >
+                          <Globe className="h-4 w-4" />
+                        </button>
+
                         {/* View */}
                         <Link
                           href={`/properti/${property.slug}`}
@@ -406,7 +481,7 @@ export default function AdminPropertiesPage() {
                           <Eye className="h-4 w-4" />
                         </Link>
 
-                        {/* Edit (🟢 URL Disesuaikan dengan struktur Next.js) */}
+                        {/* Edit */}
                         <Link
                           href={`/admin/properties/${property.id}/edit`}
                           title="Edit Properti"
@@ -430,8 +505,7 @@ export default function AdminPropertiesPage() {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-gray-500">
-                    Tidak ada properti yang sesuai dengan filter pencarian atau database masih
-                    kosong.
+                    Tidak ada properti yang sesuai dengan filter pencarian atau database masih kosong.
                   </td>
                 </tr>
               )}
@@ -451,15 +525,18 @@ export default function AdminPropertiesPage() {
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 onClick={() => setDeleteId(null)}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
+                disabled={isDeleting}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
               >
                 Batal
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-rose-700"
+                disabled={isDeleting}
+                className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-rose-700 disabled:opacity-50"
               >
-                Hapus
+                {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isDeleting ? "Menghapus..." : "Hapus"}
               </button>
             </div>
           </div>

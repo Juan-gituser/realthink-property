@@ -17,6 +17,8 @@ import {
   Layers,
   FileText,
   Building2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export interface Property {
@@ -26,6 +28,7 @@ export interface Property {
   location: string;
   address?: string;
   imageUrl: string;
+  images?: string[]; // 🟢 Tambahkan field images berupa array string
   bedrooms: number;
   bathrooms: number;
   buildingArea: number;
@@ -57,6 +60,23 @@ const formatRupiah = (amount: number | string) => {
 export default function DetailPropertiClient({ properti }: DetailPropertiClientProps) {
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+
+  // 🟢 State untuk Slider/Galeri Gambar
+  // Gabungkan images dari array, jika kosong gunakan imageUrl tunggal sebagai fallback
+  const propertyImages =
+    properti.images && properti.images.length > 0
+      ? properti.images
+      : [properti.imageUrl];
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const nextImage = () => {
+    setActiveImageIndex((prev) => (prev + 1) % propertyImages.length);
+  };
+
+  const prevImage = () => {
+    setActiveImageIndex((prev) => (prev - 1 + propertyImages.length) % propertyImages.length);
+  };
 
   const trackGAEvent = (action: string, params?: Record<string, unknown>) => {
     if (
@@ -120,19 +140,64 @@ export default function DetailPropertiClient({ properti }: DetailPropertiClientP
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-16">
       <div className="container mx-auto max-w-4xl space-y-8 px-4">
-        {/* Banner Gambar Utama */}
-        <div className="relative h-80 w-full overflow-hidden rounded-2xl bg-gray-100 shadow-sm">
-          <Image
-            src={properti.imageUrl}
-            alt={properti.title}
-            fill
-            className="object-cover"
-            priority
-          />
-          {properti.status && (
-            <span className="absolute top-4 left-4 rounded-xl bg-gray-900/80 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md">
-              {properti.status}
-            </span>
+        
+        {/* 🟢 Galeri & Slider Gambar Properti */}
+        <div className="space-y-3">
+          <div className="relative w-full aspect-[16/9] overflow-hidden rounded-2xl bg-gray-100 shadow-sm">
+            <Image
+              src={propertyImages[activeImageIndex]}
+              alt={`${properti.title} - Foto ${activeImageIndex + 1}`}
+              fill
+              className="object-cover transition-all duration-300"
+              priority
+            />
+            {properti.status && (
+              <span className="absolute top-4 left-4 z-10 rounded-xl bg-gray-900/80 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md">
+                {properti.status}
+              </span>
+            )}
+
+            {/* Tombol Navigasi Slider (Jika foto lebih dari 1) */}
+            {propertyImages.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70 cursor-pointer z-10"
+                  aria-label="Previous Image"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70 cursor-pointer z-10"
+                  aria-label="Next Image"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+                <div className="absolute bottom-3 right-3 rounded-lg bg-black/60 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-sm z-10">
+                  {activeImageIndex + 1} / {propertyImages.length}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Thumbnail Pilihan Gambar Kecil */}
+          {propertyImages.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {propertyImages.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`relative h-20 w-28 shrink-0 overflow-hidden rounded-xl border-2 transition cursor-pointer ${
+                    activeImageIndex === index 
+                      ? "border-amber-600 scale-95 shadow-md" 
+                      : "border-transparent opacity-70 hover:opacity-100"
+                  }`}
+                >
+                  <Image src={img} alt={`Thumbnail ${index + 1}`} fill className="object-cover" />
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
@@ -231,7 +296,6 @@ export default function DetailPropertiClient({ properti }: DetailPropertiClientP
 
         {/* Deskripsi & Detail Tambahan Properti */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {/* Deskripsi */}
           <div className="md:col-span-2 space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
               <FileText className="h-5 w-5 text-amber-600" />
@@ -242,7 +306,6 @@ export default function DetailPropertiClient({ properti }: DetailPropertiClientP
             </div>
           </div>
 
-          {/* Detail Legaltas & Kategori */}
           <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm h-fit">
             <h2 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3 flex items-center gap-2">
               <Building2 className="h-5 w-5 text-amber-600" />

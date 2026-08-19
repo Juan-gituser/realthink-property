@@ -1,185 +1,125 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 
-// Helper internal untuk menginisialisasi Supabase Server Client
-async function createClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Ditangani jika dipanggil dalam konteks Read-Only
-          }
-        },
-      },
-    }
-  );
-}
-
-// ----------------------------------------------------------------------
-// GET: Mengambil daftar Follow Up beserta data Relasi Lead
-// ----------------------------------------------------------------------
 export async function GET(req: Request) {
   try {
-    const supabase = await createClient();
-    const { searchParams } = new URL(req.url);
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
+    const { searchParams } = new URL(req.url);
     const leadId = searchParams.get("lead_id");
     const status = searchParams.get("status");
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("follow_ups")
-      .select("*, leads(name, whatsapp, property_title)")
-      .order("date", { ascending: true })
-      .order("time", { ascending: true });
+      .select("*, leads(name, whatsapp, property_type)")
+      .order("created_at", { ascending: false });
 
-    // Filter berdasarkan lead_id jika disediakan
     if (leadId) {
       query = query.eq("lead_id", leadId);
     }
 
-    // Filter berdasarkan status jika disediakan
     if (status && status !== "ALL") {
       query = query.eq("status", status);
     }
 
     const { data, error } = await query;
-
-    if (error) {
-      console.error("[GET_FOLLOW_UPS_ERROR]", error);
-      throw error;
-    }
+    if (error) throw error;
 
     return NextResponse.json({ success: true, data: data || [] });
   } catch (err: unknown) {
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : "Gagal mengambil data follow up",
-      },
+      { success: false, error: err instanceof Error ? err.message : "Gagal mengambil data follow up" },
       { status: 500 }
     );
   }
 }
 
-// ----------------------------------------------------------------------
-// POST: Membuat jadwal Follow Up baru & mencatat Activity Log
-// ----------------------------------------------------------------------
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
-    const body = await req.json();
-    const { lead_id, date, time, notes, pic } = body;
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
-    // Validasi input wajib
-    if (!lead_id || !date || !time) {
+    const body = await req.json();
+    const { lead_id, survey_id, notes, status, schedule_date, assigned_to } = body;
+
+    if (!lead_id) {
       return NextResponse.json(
-        { success: false, error: "Lead, tanggal, dan jam wajib diisi." },
+        { success: false, error: "Lead ID wajib diisi." },
         { status: 400 }
       );
     }
 
-    // 1. Simpan Follow Up
-    const { data: followUp, error: followUpErr } = await supabase
+    const insertPayload: Record<string, any> = {
+      lead_id,
+      notes: notes || "",
+      status: status || "PENDING",
+    };
+
+    if (survey_id) insertPayload.survey_id = survey_id;
+    if (schedule_date) insertPayload.schedule_date = schedule_date;
+    if (assigned_to) insertPayload.assigned_to = assigned_to;
+
+    const { data: followUp, error: followUpErr } = await supabaseAdmin
       .from("follow_ups")
-      .insert({
-        lead_id,
-        date,
-        time,
-        notes: notes || "",
-        pic: pic || "Tanpa PIC",
-        status: "PENDING",
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
     if (followUpErr) {
-      console.error("[POST_FOLLOW_UP_ERROR]", followUpErr);
-      throw followUpErr;
-    }
-
-    // 2. Tambah Activity Log Otomatis
-    const { error: activityErr } = await supabase.from("activities").insert({
-      lead_id,
-      type: "NOTE",
-      description: `Follow Up dijadwalkan untuk ${date} pkl ${time} (${pic || "Tanpa PIC"})`,
-    });
-
-    if (activityErr) {
-      console.warn("[POST_ACTIVITY_LOG_WARN]", activityErr);
+      console.error("SUPABASE INSERT ERROR:", followUpErr);
+      throw new Error(followUpErr.message);
     }
 
     return NextResponse.json({ success: true, data: followUp });
   } catch (err: unknown) {
+    console.error("DETAIL ERROR API FOLLOW-UPS:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : "Gagal membuat follow up",
-      },
+      { success: false, error: err instanceof Error ? err.message : "Gagal membuat follow up" },
       { status: 500 }
     );
   }
 }
 
-// ----------------------------------------------------------------------
-// PATCH: Mengubah status Follow Up (misal: PENDING -> COMPLETED / CANCELLED)
-// ----------------------------------------------------------------------
+// TAMBAHKAN PATCH METHOD INI AGAR TOMBOL "SELESAI" BERFUNGSI
 export async function PATCH(req: Request) {
   try {
-    const supabase = await createClient();
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const body = await req.json();
-    const { id, status, notes } = body;
+    const { id, status } = body;
 
     if (!id || !status) {
       return NextResponse.json(
-        { success: false, error: "ID follow up dan status wajib diisi." },
+        { success: false, error: "ID dan status wajib disertakan." },
         { status: 400 }
       );
     }
 
-    // 1. Update status Follow Up
-    const { data: updatedFollowUp, error: updateErr } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("follow_ups")
-      .update({
-        status,
-        ...(notes !== undefined && { notes }),
-      })
+      .update({ status })
       .eq("id", id)
       .select()
       .single();
 
-    if (updateErr) {
-      console.error("[PATCH_FOLLOW_UP_ERROR]", updateErr);
-      throw updateErr;
+    if (error) {
+      console.error("SUPABASE UPDATE ERROR:", error);
+      throw new Error(error.message);
     }
 
-    // 2. Catat aktivitas perubahan status secara otomatis
-    if (updatedFollowUp) {
-      await supabase.from("activities").insert({
-        lead_id: updatedFollowUp.lead_id,
-        type: "NOTE",
-        description: `Status Follow Up diperbarui menjadi: ${status}`,
-      });
-    }
-
-    return NextResponse.json({ success: true, data: updatedFollowUp });
+    return NextResponse.json({ success: true, data });
   } catch (err: unknown) {
+    console.error("DETAIL ERROR API PATCH FOLLOW-UPS:", err);
     return NextResponse.json(
-      {
-        success: false,
-        error: err instanceof Error ? err.message : "Gagal memperbarui status follow up",
-      },
+      { success: false, error: err instanceof Error ? err.message : "Gagal memperbarui status" },
       { status: 500 }
     );
   }

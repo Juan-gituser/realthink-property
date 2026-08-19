@@ -32,12 +32,8 @@ export async function GET(
 
   try {
     const { data: survey, error } = await supabase
-      .from("surveys")
-      .select(`
-        *,
-        leads ( id, lead_id, name, whatsapp, email, status ),
-        properties ( id, title, price, address )
-      `)
+      .from("property_surveys")
+      .select("*")
       .eq("id", id)
       .single();
 
@@ -45,14 +41,71 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Survey tidak ditemukan" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: survey });
+    // Ambil data properti
+    let propertyData = null;
+    if (survey.property_id) {
+      const { data } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("id", survey.property_id)
+        .single();
+      propertyData = data;
+    }
+
+    // Ambil data lead/buyer agar nama & WA valid di frontend
+    let leadData = null;
+    if (survey.lead_id) {
+      const { data } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", survey.lead_id)
+        .single();
+      leadData = data;
+    }
+
+    // Gabungkan survey_date dan survey_time agar dibaca datetime-local frontend
+    let combinedDateTime = survey.survey_date || "";
+    if (survey.survey_date) {
+      const datePart = survey.survey_date.split("T")[0];
+      const timePart = survey.survey_time ? survey.survey_time.substring(0, 5) : "07:00";
+      combinedDateTime = `${datePart}T${timePart}`;
+    }
+
+    const formattedSurvey = {
+      ...survey,
+      survey_date: combinedDateTime,
+      leads: leadData ? {
+        id: leadData.id,
+        lead_id: leadData.lead_id || "-",
+        name: leadData.name || "Tanpa Nama",
+        whatsapp: leadData.whatsapp || "-",
+        email: leadData.email || "-",
+        status: leadData.status || "-",
+      } : {
+        // Fallback jika tidak ada di tabel leads
+        id: survey.lead_id || null, 
+        lead_id: survey.lead_id || "-",
+        name: survey.full_name || "Tanpa Nama",
+        whatsapp: survey.whatsapp || "-",
+        email: survey.email || "-",
+        status: survey.status || "-",
+      },
+      properties: propertyData || {
+        id: survey.property_id,
+        title: survey.property_title || "Properti",
+        price: 0,
+        address: "-",
+      },
+    };
+
+    return NextResponse.json({ success: true, data: formattedSurvey });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Error fetching survey";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
-// PATCH: Update Survey Status / Reschedule / Notes & Log Activity
+// PATCH: Update Survey Status / Reschedule / Notes / Assigned To / Lead ID
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -62,43 +115,80 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const { status, survey_date, assigned_to, notes, feedback } = body;
+    // Menambahkan lead_id ke dalam ekstrak body request
+    const { status, survey_date, survey_time, assigned_to, notes, feedback, lead_id } = body; 
 
-    // Fetch existing survey state
-    const { data: currentSurvey } = await supabase
-      .from("surveys")
-      .select(`
-        *,
-        properties ( title )
-      `)
+    const { data: currentSurvey, error: fetchError } = await supabase
+      .from("property_surveys")
+      .select("*")
       .eq("id", id)
       .single();
 
-    if (!currentSurvey) {
+    if (fetchError || !currentSurvey) {
       return NextResponse.json({ success: false, error: "Survey not found" }, { status: 404 });
     }
 
     const updates: Record<string, unknown> = {};
     if (status) updates.status = status;
-    if (survey_date) updates.survey_date = survey_date;
-    if (assigned_to !== undefined) updates.assigned_to = assigned_to;
-    if (notes !== undefined) updates.notes = notes;
-    if (feedback !== undefined) updates.feedback = feedback;
+    
+    // Menambahkan penanganan update lead_id jika dikirim dari frontend
+    if (lead_id !== undefined) {
+      updates.lead_id = lead_id;
+    }
 
-    const { data: updatedSurvey, error } = await supabase
-      .from("surveys")
+    if (survey_date) {
+      if (typeof survey_date === "string" && survey_date.includes("T")) {
+        const [datePart, timePart] = survey_date.split("T");
+        updates.survey_date = datePart;
+        if (timePart) {
+          updates.survey_time = timePart.substring(0, 5);
+        }
+      } else {
+        const dateObj = new Date(survey_date);
+        if (!isNaN(dateObj.getTime())) {
+          updates.survey_date = dateObj.toISOString().split("T")[0];
+        }
+      }
+    }
+
+    if (survey_time !== undefined) {
+      updates.survey_time = survey_time;
+    }
+
+    if (assigned_to !== undefined) {
+      updates.assigned_to = assigned_to;
+    }
+
+    let combinedNotes = notes || "";
+    if (feedback) {
+      combinedNotes = combinedNotes ? `${combinedNotes} | Feedback: ${feedback}` : `Feedback: ${feedback}`;
+    }
+    if (combinedNotes) {
+      updates.notes = combinedNotes;
+    }
+
+    const { error: updateError } = await supabase
+      .from("property_surveys")
       .update(updates)
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", id);
 
-    if (error) throw error;
+    if (updateError) {
+      console.error("SUPABASE UPDATE ERROR DETAIL:", updateError);
+      return NextResponse.json({ success: false, error: updateError.message }, { status: 400 });
+    }
 
-    // Create Activity Log based on action performed
-    let activityText = "";
-    const propTitle = currentSurvey.properties?.title || "Properti";
+    let propTitle = currentSurvey.property_title || "Properti";
+    if (currentSurvey.property_id) {
+      const { data: propData } = await supabase
+        .from("properties")
+        .select("title")
+        .eq("id", currentSurvey.property_id)
+        .single();
+      if (propData?.title) propTitle = propData.title;
+    }
 
     if (status && status !== currentSurvey.status) {
+      let activityText = "";
       switch (status) {
         case "CONFIRMED":
           activityText = `Survey Confirmed: Jadwal survey unit "${propTitle}" telah dikonfirmasi oleh buyer.`;
@@ -106,14 +196,15 @@ export async function PATCH(
         case "COMPLETED":
           activityText = `Survey Completed: Survey lokasi unit "${propTitle}" telah selesai dilaksanakan.`;
           break;
-        case "RESCHEDULED":
+        case "RESCHEDULED": {
           const newTime = survey_date
             ? new Date(survey_date).toLocaleString("id-ID", { dateStyle: "full", timeStyle: "short" })
             : "Waktu baru";
           activityText = `Survey Rescheduled: Dijadwalkan ulang ke ${newTime} untuk unit "${propTitle}".`;
           break;
+        }
         case "CANCELLED":
-          activityText = `Survey Cancelled: Survey unit "${propTitle}" dibatalkan. Catatan: ${notes || "-"}`;
+          activityText = `Survey Cancelled: Survey unit "${propTitle}" dibatalkan. Catatan: ${combinedNotes || "-"}`;
           break;
         case "NO_SHOW":
           activityText = `Survey No Show: Buyer tidak hadir pada jadwal survey unit "${propTitle}".`;
@@ -122,17 +213,79 @@ export async function PATCH(
           activityText = `Survey status diubah menjadi ${status}.`;
       }
 
-      await supabase.from("activities").insert({
-        lead_id: currentSurvey.lead_id,
-        property_id: currentSurvey.property_id,
-        activity_type: "SURVEY",
-        description: activityText,
-      });
+      try {
+        await supabase.from("activities").insert({
+          property_id: currentSurvey.property_id,
+          activity_type: "SURVEY",
+          description: activityText,
+        });
+      } catch {}
     }
 
-    return NextResponse.json({ success: true, data: updatedSurvey });
+    const { data: updatedSurvey } = await supabase
+      .from("property_surveys")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    // Fetch data properti & lead kembali setelah di-update
+    let propertyData = null;
+    if (updatedSurvey?.property_id) {
+      const { data } = await supabase
+        .from("properties")
+        .select("*")
+        .eq("id", updatedSurvey.property_id)
+        .single();
+      propertyData = data;
+    }
+
+    let leadData = null;
+    if (updatedSurvey?.lead_id) {
+      const { data } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", updatedSurvey.lead_id)
+        .single();
+      leadData = data;
+    }
+
+    let updatedCombinedDateTime = updatedSurvey?.survey_date || "";
+    if (updatedSurvey?.survey_date) {
+      const datePart = updatedSurvey.survey_date.split("T")[0];
+      const timePart = updatedSurvey.survey_time ? updatedSurvey.survey_time.substring(0, 5) : "07:00";
+      updatedCombinedDateTime = `${datePart}T${timePart}`;
+    }
+
+    const formattedUpdatedSurvey = {
+      ...updatedSurvey,
+      survey_date: updatedCombinedDateTime,
+      leads: leadData ? {
+        id: leadData.id,
+        lead_id: leadData.lead_id || "-",
+        name: leadData.name || "Tanpa Nama",
+        whatsapp: leadData.whatsapp || "-",
+        email: leadData.email || "-",
+        status: leadData.status || "-",
+      } : {
+        id: updatedSurvey?.lead_id || null,
+        lead_id: updatedSurvey?.lead_id || "-",
+        name: updatedSurvey?.full_name || "Tanpa Nama",
+        whatsapp: updatedSurvey?.whatsapp || "-",
+        email: updatedSurvey?.email || "-",
+        status: updatedSurvey?.status || "-",
+      },
+      properties: propertyData || {
+        id: updatedSurvey?.property_id,
+        title: updatedSurvey?.property_title || "Properti",
+        price: 0,
+        address: "-",
+      },
+    };
+
+    return NextResponse.json({ success: true, data: formattedUpdatedSurvey });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Update survey failed";
+    console.error("CRITICAL PATCH ERROR:", message);
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

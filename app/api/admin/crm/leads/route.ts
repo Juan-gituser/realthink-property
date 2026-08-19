@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+// Inisialisasi Supabase Client (Mendukung Service Role Key untuk bypass RLS)
 async function getSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (serviceRoleKey) {
+    return createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+  }
+
   const cookieStore = await cookies();
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -24,7 +35,21 @@ async function getSupabase() {
   );
 }
 
-// GET: Fetch Leads with Search, Filters & Joined Properties
+// Helper ekstraksi pesan eror Supabase
+function parseErrorMessage(err: unknown): string {
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    if ("message" in err && typeof (err as { message: unknown }).message === "string") {
+      return (err as { message: string }).message;
+    }
+    if ("details" in err && typeof (err as { details: unknown }).details === "string") {
+      return (err as { details: string }).details;
+    }
+  }
+  return "Terjadi kesalahan pada server";
+}
+
+// GET: Fetch Leads dengan Join Properti Minat
 export async function GET(req: NextRequest) {
   try {
     const supabase = await getSupabase();
@@ -54,12 +79,10 @@ export async function GET(req: NextRequest) {
       `)
       .order("created_at", { ascending: false });
 
-    // Filter langsung via Query Database
     if (status) query = query.eq("status", status);
     if (source) query = query.eq("source", source);
     if (assignedTo) query = query.eq("assigned_to", assignedTo);
 
-    // Pencarian aman PostgREST Supabase
     if (search) {
       const sanitizedSearch = search.replace(/[%_]/g, "\\$&");
       query = query.or(
@@ -71,12 +94,11 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error("Supabase GET Leads Error:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+      return NextResponse.json({ success: false, error: parseErrorMessage(error) }, { status: 400 });
     }
 
     let filteredLeads = leads || [];
 
-    // Filter tambahan berdasarkan property_id jika diminta
     if (propertyId) {
       filteredLeads = filteredLeads.filter((lead) =>
         lead.lead_properties?.some(
@@ -87,15 +109,15 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: filteredLeads });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: parseErrorMessage(err) }, { status: 500 });
   }
 }
 
-// POST: Create New Lead, Connect Properties & Auto Log Activity
+// POST: Create New Lead + Relasi Properti + Log Aktivitas
 export async function POST(req: NextRequest) {
+  const supabase = await getSupabase();
+
   try {
-    const supabase = await getSupabase();
     const body = await req.json();
 
     const {
@@ -109,10 +131,11 @@ export async function POST(req: NextRequest) {
       property_type,
       notes,
       assigned_to,
-      property_ids = [], // Array UUID properti minat
+      property_ids = [],
+      next_follow_up_at,
+      status = "NEW",
     } = body;
 
-    // Validasi input wajib
     if (!name || !whatsapp) {
       return NextResponse.json(
         { success: false, error: "Nama dan WhatsApp wajib diisi." },
@@ -120,7 +143,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Insert data Lead baru
+    // 1. Insert Lead Baru
     const { data: newLead, error: leadErr } = await supabase
       .from("leads")
       .insert({
@@ -134,30 +157,39 @@ export async function POST(req: NextRequest) {
         property_type: property_type || null,
         notes: notes || null,
         assigned_to: assigned_to || null,
-        status: "NEW",
+        status: status,
+        next_follow_up_at: next_follow_up_at || null,
       })
       .select()
       .single();
 
     if (leadErr) {
       console.error("Supabase Insert Lead Error:", leadErr);
-      return NextResponse.json({ success: false, error: leadErr.message }, { status: 400 });
+      return NextResponse.json({ success: false, error: parseErrorMessage(leadErr) }, { status: 400 });
     }
 
-    // 2. Relasikan properti minat jika ada
+    // 2. Insert Relasi Properti Minat
     if (Array.isArray(property_ids) && property_ids.length > 0) {
-      const propertyInserts = property_ids.map((propId: string) => ({
-        lead_id: newLead.id,
-        property_id: propId,
-        interest_status: "INTERESTED",
-      }));
+      const cleanPropertyIds: string[] = property_ids
+        .map((item) => (typeof item === "object" && item !== null ? item.id : item))
+        .filter((val): val is string => typeof val === "string" && val.trim().length > 0);
 
-      const { error: relErr } = await supabase
-        .from("lead_properties")
-        .insert(propertyInserts);
+      if (cleanPropertyIds.length > 0) {
+        const propertyInserts = cleanPropertyIds.map((propId: string) => ({
+          id: crypto.randomUUID(),
+          lead_id: newLead.id,
+          property_id: propId,
+          interest_status: "INTERESTED",
+          created_at: new Date().toISOString(),
+        }));
 
-      if (relErr) {
-        console.error("Supabase Lead Properties Insert Error:", relErr);
+        const { error: relErr } = await supabase
+          .from("lead_properties")
+          .insert(propertyInserts);
+
+        if (relErr) {
+          console.error("Supabase Lead Properties Insert Error:", relErr);
+        }
       }
     }
 
@@ -165,10 +197,10 @@ export async function POST(req: NextRequest) {
     await supabase.from("activities").insert({
       lead_id: newLead.id,
       activity_type: "STATUS_CHANGE",
-      description: `Lead dibuat dengan status awal NEW dari sumber ${source}.`,
+      description: `Lead dibuat dengan status awal ${status} dari sumber ${source}.`,
     });
 
-    // 4. Ambil kembali data Lead lengkap dengan relasi properti untuk dikirim ke frontend
+    // 4. Ambil kembali data Lead lengkap dengan JOIN properti
     const { data: completeLead } = await supabase
       .from("leads")
       .select(`
@@ -193,7 +225,6 @@ export async function POST(req: NextRequest) {
       data: completeLead || newLead,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create lead";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: parseErrorMessage(err) }, { status: 500 });
   }
 }

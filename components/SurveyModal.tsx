@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import {
   X,
   Calendar,
   Clock,
-  Users,
   User,
   Phone,
   Mail,
@@ -13,53 +12,85 @@ import {
   CheckCircle2,
   Loader2,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
-interface SurveyModalProps {
+interface SurveyEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  propertyId: string;
-  propertyTitle: string;
+  surveyId: string | null;
   onSubmitSuccess?: () => void;
 }
 
-export default function SurveyModal({
+export default function SurveyEditModal({
   isOpen,
   onClose,
-  propertyId,
-  propertyTitle,
+  surveyId,
   onSubmitSuccess,
-}: SurveyModalProps) {
+}: SurveyEditModalProps) {
   // Form State
-  const [fullName, setFullName] = useState("");
+  const [propertyTitle, setPropertyTitle] = useState("");
+  const [buyerName, setBuyerName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("SCHEDULED");
   const [surveyDate, setSurveyDate] = useState("");
-  const [surveyTime, setSurveyTime] = useState("");
-  const [numPeople, setNumPeople] = useState("1");
   const [notes, setNotes] = useState("");
+  const [feedback, setFeedback] = useState("");
 
-  // Status & Feedback State
+  // UI State
+  const [fetching, setFetching] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMessage, setSuccessMessage] = useState(false);
 
-  if (!isOpen) return null;
+  // Ambil detail data survey saat modal dibuka
+  useEffect(() => {
+    if (isOpen && surveyId) {
+      fetchSurveyDetail();
+    }
+  }, [isOpen, surveyId]);
 
-  const resetForm = () => {
-    setFullName("");
-    setWhatsapp("");
-    setEmail("");
-    setSurveyDate("");
-    setSurveyTime("");
-    setNumPeople("1");
-    setNotes("");
-    setErrorMsg("");
-    setSuccessMessage(false);
+  const fetchSurveyDetail = async () => {
+    try {
+      setFetching(true);
+      setErrorMsg("");
+      const res = await fetch(`/api/admin/crm/surveys/${surveyId}`);
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Gagal memuat detail survey");
+      }
+
+      const data = json.data;
+      setPropertyTitle(data.properties?.title || data.property_title || "Properti");
+      setBuyerName(data.leads?.name || data.full_name || "");
+      setWhatsapp(data.leads?.whatsapp || data.whatsapp || "");
+      setEmail(data.leads?.email || data.email || "");
+      setStatus(data.status || "SCHEDULED");
+      
+      // Format tanggal untuk input date (YYYY-MM-DD)
+      if (data.survey_date) {
+        const formattedDate = data.survey_date.split("T")[0];
+        const timePart = data.survey_time ? data.survey_time.substring(0, 5) : "00:00";
+        setSurveyDate(`${formattedDate}T${timePart}`);
+      } else {
+        setSurveyDate("");
+      }
+
+      setNotes(data.notes || "");
+      setFeedback(data.feedback || "");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
+      setErrorMsg(message);
+    } finally {
+      setFetching(false);
+    }
   };
 
+  if (!isOpen) return null;
+
   const handleClose = () => {
-    resetForm();
+    setSuccessMessage(false);
+    setErrorMsg("");
     onClose();
   };
 
@@ -69,50 +100,36 @@ export default function SurveyModal({
     setErrorMsg("");
 
     try {
-      if (!fullName || !whatsapp || !surveyDate || !surveyTime) {
-        throw new Error("Harap isi semua kolom yang wajib (*)");
-      }
-
-      // Simpan data ke tabel 'property_surveys'
-      const { error } = await supabase.from("property_surveys").insert([
-        {
-          property_id: propertyId,
-          property_title: propertyTitle,
-          full_name: fullName,
-          whatsapp,
-          email: email || null,
+      const response = await fetch(`/api/admin/crm/surveys/${surveyId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status,
           survey_date: surveyDate,
-          survey_time: surveyTime,
-          num_people: parseInt(numPeople) || 1,
-          notes: notes || null,
-          status: "Menunggu",
-        },
-      ]);
+          notes,
+          feedback,
+        }),
+      });
 
-      // Jika ada error dari Supabase, lempar pesan error spesifiknya
-      if (error) {
-        throw new Error(error.message || "Gagal menyimpan data ke Supabase.");
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Gagal memperbarui survey");
       }
 
       setSuccessMessage(true);
 
+      // Trigger refresh data di tabel utama dan *Follow Up*
       if (onSubmitSuccess) {
         onSubmitSuccess();
       }
 
+      // Tutup modal otomatis setelah 1.5 detik
       setTimeout(() => {
         handleClose();
-      }, 2000);
+      }, 1500);
     } catch (err: unknown) {
-      // Ambil pesan error dengan aman
-      const message =
-        err instanceof Error
-          ? err.message
-          : typeof err === "object" && err !== null && "message" in err
-          ? String((err as { message: unknown }).message)
-          : "Terjadi kesalahan saat mengirim jadwal survei.";
-
-      console.error("Gagal mengirim survei:", message, err);
+      const message = err instanceof Error ? err.message : "Update survey failed";
       setErrorMsg(message);
     } finally {
       setLoading(false);
@@ -121,14 +138,13 @@ export default function SurveyModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      {/* Container Modal */}
       <div className="relative flex w-full max-w-lg max-h-[90vh] flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
         
         {/* HEADER MODAL */}
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-white sticky top-0 z-10 shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Jadwalkan Survei</h2>
-            <p className="text-xs font-medium text-gray-500 truncate max-w-70[280px] sm:max-w-xs">
+            <h2 className="text-lg font-bold text-gray-900">Kelola Survei</h2>
+            <p className="text-xs font-medium text-gray-500 truncate max-w-[280px] sm:max-w-xs">
               {propertyTitle}
             </p>
           </div>
@@ -143,14 +159,19 @@ export default function SurveyModal({
 
         {/* ISI FORM */}
         <div className="flex-1 overflow-y-auto p-6">
-          {successMessage ? (
+          {fetching ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-2">
+              <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+              <p className="text-xs text-gray-500">Memuat data...</p>
+            </div>
+          ) : successMessage ? (
             <div className="flex flex-col items-center justify-center py-8 text-center space-y-3">
               <CheckCircle2 className="h-12 w-12 text-emerald-600 animate-bounce" />
               <h4 className="text-base font-bold text-gray-900">
-                Berhasil Mengirim Jadwal Survei!
+                Perubahan Berhasil Disimpan!
               </h4>
               <p className="text-xs text-gray-500">
-                Permintaan Anda sedang diproses. Tim kami akan segera menghubungi Anda.
+                Data berhasil diperbarui dan tercatat ke sistem Follow Up.
               </p>
             </div>
           ) : (
@@ -162,134 +183,103 @@ export default function SurveyModal({
                 </div>
               )}
 
-              {/* Nama Lengkap */}
-              <div>
-                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                  <User className="h-3.5 w-3.5 text-amber-600" />
-                  Nama Lengkap <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  disabled={loading}
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Contoh: Juan"
-                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
-                />
+              {/* Informasi Singkat Buyer */}
+              <div className="rounded-2xl bg-amber-50/60 p-3 border border-amber-100 text-xs space-y-1">
+                <p className="font-bold text-gray-900">Informasi Buyer & Kontak</p>
+                <div className="text-gray-600 grid grid-cols-2 gap-1 pt-1">
+                  <p>Nama: <span className="font-semibold text-gray-800">{buyerName || "-"}</span></p>
+                  <p>WhatsApp: <span className="font-semibold text-gray-800">{whatsapp || "-"}</span></p>
+                </div>
               </div>
 
-              {/* WhatsApp & Email */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                    <Phone className="h-3.5 w-3.5 text-amber-600" />
-                    WhatsApp <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    disabled={loading}
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    placeholder="085717312516"
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                    <Mail className="h-3.5 w-3.5 text-amber-600" />
-                    Email (Opsional)
-                  </label>
-                  <input
-                    type="email"
-                    disabled={loading}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@example.com"
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
+              {/* Status Survey */}
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                  Status Survey
+                </label>
+                <select
+                  disabled={loading}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none bg-white"
+                >
+                  <option value="SCHEDULED">Scheduled / Menunggu</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                  <option value="COMPLETED">Completed (Selesai)</option>
+                  <option value="RESCHEDULED">Rescheduled</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="NO_SHOW">No Show</option>
+                </select>
               </div>
 
               {/* Tanggal & Waktu Survei */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                    <Calendar className="h-3.5 w-3.5 text-amber-600" />
-                    Tanggal Survei <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    disabled={loading}
-                    value={surveyDate}
-                    onChange={(e) => setSurveyDate(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                    <Clock className="h-3.5 w-3.5 text-amber-600" />
-                    Waktu Survei <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    disabled={loading}
-                    value={surveyTime}
-                    onChange={(e) => setSurveyTime(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Jumlah Orang */}
               <div>
                 <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
-                  <Users className="h-3.5 w-3.5 text-amber-600" />
-                  Jumlah Orang
+                  <Calendar className="h-3.5 w-3.5 text-amber-600" />
+                  Jadwal / Re-Schedule Date
                 </label>
                 <input
-                  type="number"
-                  min="1"
+                  type="datetime-local"
                   disabled={loading}
-                  value={numPeople}
-                  onChange={(e) => setNumPeople(e.target.value)}
+                  value={surveyDate}
+                  onChange={(e) => setSurveyDate(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
-              {/* Catatan Tambahan */}
+              {/* Catatan Internal */}
               <div>
                 <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
                   <FileText className="h-3.5 w-3.5 text-amber-600" />
-                  Catatan Tambahan (Opsional)
+                  Catatan Internal / Persiapan
                 </label>
                 <textarea
                   rows={2}
                   disabled={loading}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Contoh: Saya pakai mobil"
+                  placeholder="Catatan tambahan untuk tim..."
                   className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
-              {/* Tombol Submit */}
-              <div className="pt-2">
+              {/* Hasil & Feedback Klien */}
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-gray-700">
+                  Hasil & Feedback Klien
+                </label>
+                <textarea
+                  rows={2}
+                  disabled={loading}
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Feedback dari buyer setelah survey (misal: Suka dengan layout, pertimbangkan negosiasi harga)..."
+                  className="w-full rounded-xl border border-gray-200 px-3.5 py-2 text-xs text-gray-900 focus:border-amber-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Tombol Aksi */}
+              <div className="pt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  disabled={loading}
+                  className="flex-1 rounded-xl bg-gray-100 py-3 text-xs font-bold text-gray-600 hover:bg-gray-200 transition"
+                >
+                  Batal
+                </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-amber-600 py-3 text-xs font-bold text-white shadow-md transition hover:bg-amber-700 active:scale-98 disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="flex-1 rounded-xl bg-amber-600 py-3 text-xs font-bold text-white shadow-md transition hover:bg-amber-700 active:scale-98 disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Mengirim Jadwal...
+                      Menyimpan...
                     </>
                   ) : (
-                    "Kirim Jadwal Survei"
+                    "Simpan Perubahan"
                   )}
                 </button>
               </div>

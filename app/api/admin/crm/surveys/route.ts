@@ -9,9 +9,7 @@ async function getSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
+        getAll() { return cookieStore.getAll(); },
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
@@ -24,164 +22,101 @@ async function getSupabase() {
   );
 }
 
-// GET: Fetch Surveys with Filters (Status, Date, Search)
 export async function GET(req: NextRequest) {
   const supabase = await getSupabase();
   const { searchParams } = new URL(req.url);
-
-  const search = searchParams.get("search") || "";
   const status = searchParams.get("status") || "";
-  const date = searchParams.get("date") || "";
-  const leadId = searchParams.get("lead_id") || "";
-  const propertyId = searchParams.get("property_id") || "";
 
   try {
     let query = supabase
-      .from("surveys")
-      .select(`
-        *,
-        leads (
-          id,
-          lead_id,
-          name,
-          whatsapp,
-          email,
-          status
-        ),
-        properties (
-          id,
-          title,
-          price,
-          address
-        )
-      `)
+      .from("property_surveys")
+      .select("*")
       .order("survey_date", { ascending: true });
 
     if (status) query = query.eq("status", status);
-    if (leadId) query = query.eq("lead_id", leadId);
-    if (propertyId) query = query.eq("property_id", propertyId);
 
-    if (date) {
-      // Filter by specific date (YYYY-MM-DD)
-      const startDate = `${date}T00:00:00`;
-      const endDate = `${date}T23:59:59`;
-      query = query.gte("survey_date", startDate).lte("survey_date", endDate);
+    const { data: surveys, error: surveyError } = await query;
+    if (surveyError) throw surveyError;
+
+    if (!surveys || surveys.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
     }
 
-    const { data: surveys, error } = await query;
+    const { data: leadsData } = await supabase.from("leads").select("*");
+    const { data: propData } = await supabase.from("properties").select("*");
 
-    if (error) throw error;
+    let leadsMap: Record<string, any> = {};
+    if (leadsData) {
+      leadsData.forEach((l: any) => {
+        const resolvedName = 
+          l.full_name || 
+          l.name || 
+          l.buyer_name || 
+          l.client_name || 
+          l.nama || 
+          l.username || 
+          l.contact_name || 
+          "Tanpa Nama";
 
-    let filteredSurveys = surveys || [];
+        const resolvedPhone = 
+          l.whatsapp || 
+          l.phone || 
+          l.phone_number || 
+          l.telp || 
+          l.no_hp || 
+          l.handphone || 
+          "-";
 
-    // Search filter across Lead name, WhatsApp, or Property title
-    if (search) {
-      const lowerSearch = search.toLowerCase();
-      filteredSurveys = filteredSurveys.filter((item: {
-        leads?: { name?: string | null; whatsapp?: string | null };
-        properties?: { title?: string | null };
-        survey_id?: string | null;
-      }) => {
-        const leadName = item.leads?.name?.toLowerCase() || "";
-        const leadWA = item.leads?.whatsapp?.toLowerCase() || "";
-        const propTitle = item.properties?.title?.toLowerCase() || "";
-        const surveyCode = item.survey_id?.toLowerCase() || "";
-
-        return (
-          leadName.includes(lowerSearch) ||
-          leadWA.includes(lowerSearch) ||
-          propTitle.includes(lowerSearch) ||
-          surveyCode.includes(lowerSearch)
-        );
+        leadsMap[l.id] = {
+          ...l,
+          name: resolvedName,
+          whatsapp: resolvedPhone,
+        };
       });
     }
 
-    return NextResponse.json({ success: true, data: filteredSurveys });
+    let propertiesMap: Record<string, any> = {};
+    if (propData) {
+      propData.forEach((p: any) => {
+        propertiesMap[p.id] = {
+          ...p,
+          title: p.title || p.name || p.property_title || "Properti",
+        };
+      });
+    }
+
+    let formattedSurveys = surveys.map((item: any) => {
+      const possibleLeadId = item.lead_id || item.buyer_id || item.client_id || item.user_id;
+      const possiblePropId = item.property_id || item.prop_id || item.unit_id;
+
+      const directName = item.name || item.full_name || item.buyer_name || item.client_name;
+      const directPhone = item.whatsapp || item.phone || item.no_hp;
+
+      const matchedLead = leadsMap[possibleLeadId];
+
+      // PERBAIKAN UTAMA: Gabungkan survey_date dan survey_time untuk konsistensi frontend
+      let combinedDateTime = item.survey_date || "";
+      if (item.survey_date) {
+        const datePart = item.survey_date.split("T")[0];
+        const timePart = item.survey_time ? item.survey_time.substring(0, 5) : "07:00";
+        combinedDateTime = `${datePart}T${timePart}`;
+      }
+
+      return {
+        ...item,
+        survey_date: combinedDateTime, // Timpa dengan format gabungan yang aman dari UTC shift
+        leads: {
+          name: matchedLead?.name || directName || "Klien Tanpa Nama",
+          whatsapp: matchedLead?.whatsapp || directPhone || "-",
+        },
+        properties: propertiesMap[possiblePropId] || { title: item.property_title || "Properti", price: 0 }
+      };
+    });
+
+    return NextResponse.json({ success: true, data: formattedSurveys });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
-}
-
-// POST: Create New Survey
-export async function POST(req: NextRequest) {
-  const supabase = await getSupabase();
-
-  try {
-    const body = await req.json();
-    const {
-      lead_id,
-      property_id,
-      survey_date, // Full ISO Timestamp or YYYY-MM-DDTHH:mm
-      assigned_to,
-      notes,
-    } = body;
-
-    if (!lead_id || !property_id || !survey_date) {
-      return NextResponse.json(
-        { success: false, error: "Lead, Properti, dan Tanggal/Jam survey wajib diisi." },
-        { status: 400 }
-      );
-    }
-
-    // 1. Insert new survey
-    const { data: newSurvey, error: surveyErr } = await supabase
-      .from("surveys")
-      .insert({
-        lead_id,
-        property_id,
-        survey_date,
-        assigned_to: assigned_to || null,
-        notes: notes || null,
-        status: "SCHEDULED",
-      })
-      .select(`
-        *,
-        leads ( name, whatsapp ),
-        properties ( title )
-      `)
-      .single();
-
-    if (surveyErr) throw surveyErr;
-
-    // 2. Automatically update Lead Status to "SURVEY" if not already in higher state
-    const { data: leadData } = await supabase
-      .from("leads")
-      .select("status")
-      .eq("id", lead_id)
-      .single();
-
-    if (leadData && ["NEW", "CONTACTED", "QUALIFIED"].includes(leadData.status)) {
-      await supabase
-        .from("leads")
-        .update({ status: "SURVEY" })
-        .eq("id", lead_id);
-
-      // Log Status change activity
-      await supabase.from("activities").insert({
-        lead_id,
-        property_id,
-        activity_type: "STATUS_CHANGE",
-        description: `Status lead diperbarui menjadi SURVEY karena adanya penjadwalan survey baru.`,
-      });
-    }
-
-    // 3. Log Survey Scheduled Activity
-    const formattedTime = new Date(survey_date).toLocaleString("id-ID", {
-      dateStyle: "full",
-      timeStyle: "short",
-    });
-
-    await supabase.from("activities").insert({
-      lead_id,
-      property_id,
-      activity_type: "SURVEY",
-      description: `Survey Scheduled: Dijadwalkan untuk unit "${newSurvey.properties?.title || "Properti"}" pada ${formattedTime}.`,
-    });
-
-    return NextResponse.json({ success: true, data: newSurvey });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create survey";
+    console.error("[GET_SURVEYS_ERROR]", message);
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

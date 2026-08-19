@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bed, Bath, Square, MapPin, ChevronLeft, ChevronRight, Heart, Star } from "lucide-react";
+import { Bed, Bath, Square, MapPin, ChevronLeft, ChevronRight, Heart, Star, Scale } from "lucide-react";
 
 export interface PropertyData {
   id: string;
@@ -37,6 +37,24 @@ const formatRupiah = (amount: number | string) => {
 export default function PropertyCard({ property }: { property: PropertyData }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
+  const [isCompared, setIsCompared] = useState(false);
+
+  // Sinkronisasi status perbandingan dengan localStorage dan event global
+  useEffect(() => {
+    const checkCompareStatus = () => {
+      const compareIds: string[] = JSON.parse(localStorage.getItem("realthink_compare") || "[]");
+      setIsCompared(compareIds.includes(property.id));
+    };
+
+    // Cek saat pertama kali dimuat
+    checkCompareStatus();
+
+    // Dengar perubahan event compareChanged (sinkron dengan ComparisonBar & halaman lain)
+    window.addEventListener("compareChanged", checkCompareStatus);
+    return () => {
+      window.removeEventListener("compareChanged", checkCompareStatus);
+    };
+  }, [property.id]);
 
   // Normalisasi data gambar (Mendukung array 'images' maupun gambar tunggal 'imageUrl'/'image_url')
   const rawImages = property.images && property.images.length > 0
@@ -72,6 +90,31 @@ export default function PropertyCard({ property }: { property: PropertyData }) {
     setIsLiked(!isLiked);
   };
 
+  // Handler Toggle Bandingkan Properti
+  const handleToggleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    let compareIds: string[] = JSON.parse(localStorage.getItem("realthink_compare") || "[]");
+
+    if (compareIds.includes(property.id)) {
+      // Hapus dari daftar jika sudah ada
+      compareIds = compareIds.filter((id) => id !== property.id);
+    } else {
+      // Batasi maksimal 3 properti sekaligus agar tabel perbandingan rapi
+      if (compareIds.length >= 3) {
+        alert("Maksimal 3 properti dapat dibandingkan sekaligus.");
+        return;
+      }
+      compareIds.push(property.id);
+    }
+
+    localStorage.setItem("realthink_compare", JSON.stringify(compareIds));
+    
+    // Trigger event agar ComparisonBar dan komponen kartu lain tahu terjadi perubahan
+    window.dispatchEvent(new Event("compareChanged"));
+  };
+
   return (
     <div className="group relative flex flex-col h-full overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
       <Link href={`/properti/${detailSlug}`} className="flex flex-col h-full">
@@ -99,19 +142,39 @@ export default function PropertyCard({ property }: { property: PropertyData }) {
             )}
           </div>
 
-          {/* TOMBOL FAVORIT (HEART) */}
-          <button
-            type="button"
-            onClick={handleToggleLike}
-            className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-gray-700 shadow-md backdrop-blur-md transition hover:bg-white hover:scale-110 cursor-pointer"
-            title="Tambah ke Favorit"
-          >
-            <Heart
-              className={`h-4 w-4 transition-colors ${
-                isLiked ? "fill-rose-500 text-rose-500" : "text-gray-600"
+          {/* TOMBOL AKSI KANAN ATAS (FAVORIT & BANDINGKAN) */}
+          <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+            {/* Tombol Pilih Bandingkan */}
+            <button
+              type="button"
+              onClick={handleToggleCompare}
+              className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold shadow-md backdrop-blur-md transition cursor-pointer ${
+                isCompared
+                  ? "bg-amber-600 text-white hover:bg-amber-700"
+                  : "bg-white/90 text-gray-700 hover:bg-white"
               }`}
-            />
-          </button>
+              title={isCompared ? "Batalkan Perbandingan" : "Pilih untuk Bandingkan"}
+            >
+              <Scale className="h-3.5 w-3.5" />
+              <span className="text-[10px]">{isCompared ? "Dibandingkan" : "Bandingkan"}</span>
+            </button>
+
+            {/* Tombol Favorit (Heart) */}
+            <button
+              type="button"
+              onClick={handleToggleLike}
+              className={`flex h-7 w-7 items-center justify-center rounded-full shadow-md backdrop-blur-md transition hover:scale-110 cursor-pointer ${
+                isLiked ? "bg-white text-rose-500" : "bg-white/80 text-gray-700 hover:bg-white"
+              }`}
+              title="Tambah ke Favorit"
+            >
+              <Heart
+                className={`h-4 w-4 transition-colors ${
+                  isLiked ? "fill-rose-500 text-rose-500" : "text-gray-600"
+                }`}
+              />
+            </button>
+          </div>
 
           {/* SLIDER CONTROLS (Tampil jika foto > 1) */}
           {rawImages.length > 1 && (

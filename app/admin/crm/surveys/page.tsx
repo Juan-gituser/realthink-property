@@ -5,21 +5,14 @@ import {
   Calendar,
   Clock,
   Search,
-  Filter,
   Building2,
   User,
   Phone,
-  Mail,
-  CheckCircle2,
-  XCircle,
   AlertCircle,
   RefreshCw,
   X,
-  Send,
-  MessageSquare,
   ChevronRight,
-  MapPin,
-  Tag,
+  Send,
 } from "lucide-react";
 
 export type SurveyStatus =
@@ -50,6 +43,7 @@ interface SurveyItem {
   id: string;
   lead_id: string;
   property_id: string;
+  property_title?: string;
   survey_date: string;
   status: SurveyStatus;
   assigned_to?: string;
@@ -139,6 +133,8 @@ export default function AdminCRMSurveysPage() {
       setSurveys((prev) =>
         prev.map((item) => (item.id === surveyId ? { ...item, status: newStatus } : item))
       );
+      
+      alert("Status survey berhasil diperbarui!");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal memperbarui status survey");
     }
@@ -174,10 +170,9 @@ export default function AdminCRMSurveysPage() {
         </button>
       </div>
 
-      {/* Filter & Search Bar (Disesuaikan agar tidak terpotong) */}
+      {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs sm:items-center">
-        {/* Input Pencarian (Lebar Fleksibel) */}
-        <div className="relative flex-1 min-w-55[220px]">
+        <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-gray-400" />
           <input
             type="text"
@@ -188,7 +183,6 @@ export default function AdminCRMSurveysPage() {
           />
         </div>
 
-        {/* Dropdown Filter Status (Lebar Tetap Pas & Padding Kanan) */}
         <div className="w-full sm:w-60 shrink-0">
           <select
             value={statusFilter}
@@ -342,6 +336,7 @@ function SurveyDetailDrawer({
   const [detail, setDetail] = useState<SurveyItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [convertingToFollowUp, setConvertingToFollowUp] = useState(false);
 
   // Form edit states
   const [status, setStatus] = useState<SurveyStatus>("SCHEDULED");
@@ -360,9 +355,16 @@ function SurveyDetailDrawer({
         const item: SurveyItem = data.data;
         setDetail(item);
         setStatus(item.status);
-        setSurveyDate(
-          item.survey_date ? new Date(item.survey_date).toISOString().slice(0, 16) : ""
-        );
+
+        if (item.survey_date) {
+          const datePart = item.survey_date.split("T")[0];
+          // @ts-expect-error handling dynamic property from database
+          const timePart = item.survey_time || "07:00"; 
+          setSurveyDate(`${datePart}T${timePart}`);
+        } else {
+          setSurveyDate("");
+        }
+
         setAssignedTo(item.assigned_to || "");
         setNotes(item.notes || "");
         setFeedback(item.feedback || "");
@@ -384,6 +386,17 @@ function SurveyDetailDrawer({
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let formattedDate = undefined;
+    let formattedTime = undefined;
+    if (surveyDate) {
+      const parts = surveyDate.split("T");
+      formattedDate = parts[0]; 
+      if (parts[1]) {
+        formattedTime = parts[1].length === 5 ? `${parts[1]}:00` : parts[1]; 
+      }
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch(`/api/admin/crm/surveys/${surveyId}`, {
@@ -391,7 +404,8 @@ function SurveyDetailDrawer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status,
-          survey_date: surveyDate ? new Date(surveyDate).toISOString() : undefined,
+          survey_date: formattedDate,
+          survey_time: formattedTime,
           assigned_to: assignedTo,
           notes,
           feedback,
@@ -399,14 +413,108 @@ function SurveyDetailDrawer({
       });
 
       const data = await res.json();
-      if (!data.success) throw new Error(data.error);
+      if (!data.success) throw new Error(data.error || "Gagal memperbarui survey");
 
-      onUpdated();
+      alert("Data survey berhasil diperbarui!");
+      await onUpdated();
       onClose();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Gagal memperbarui survey");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Fungsi khusus untuk melempar / mencatat data ke modul Follow-Up
+  const handleSendToFollowUp = async () => {
+    if (!detail) return;
+
+    // Coba ambil ID Lead yang sudah ada
+    let finalLeadId = detail.lead_id || detail.leads?.id || null;
+
+    setConvertingToFollowUp(true);
+
+    try {
+      // JIKA LEAD BELUM ADA, BUAT OTOMATIS
+      if (!finalLeadId) {
+        const confirmCreate = window.confirm(
+          "Data survey ini belum terhubung dengan Lead/Buyer manapun di database.\n\n" +
+          "Apakah Anda ingin sistem otomatis mendaftarkan klien ini sebagai Lead baru dan meneruskannya ke Follow-Up?"
+        );
+        
+        if (!confirmCreate) {
+          setConvertingToFollowUp(false);
+          return; // Batal jika user tidak setuju
+        }
+
+        // 1A. Siapkan data untuk Lead baru
+        const leadName = detail.leads?.name || "Klien Survey";
+        const leadPhone = detail.leads?.whatsapp || "-";
+
+        // 1B. Panggil API untuk membuat Lead baru
+        const createLeadRes = await fetch("/api/admin/crm/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: leadName,
+            whatsapp: leadPhone,
+            status: "NEW", // Status default lead
+            source: "Survey Location" 
+          }),
+        });
+
+        const leadJson = await createLeadRes.json();
+        
+        // Ambil ID Lead yang baru dibuat (antisipasi format data object atau array)
+        const newLeadId = leadJson.data?.id || (Array.isArray(leadJson.data) ? leadJson.data[0]?.id : null);
+
+        if (!leadJson.success || !newLeadId) {
+           throw new Error(leadJson.error || "Gagal mendaftarkan Lead baru di database.");
+        }
+
+        finalLeadId = newLeadId;
+
+        // 1C. Update tabel Survey agar terikat permanen dengan Lead yang baru
+        await fetch(`/api/admin/crm/surveys/${surveyId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          // Kirim lead_id baru untuk disimpan
+          body: JSON.stringify({ lead_id: finalLeadId }),
+        });
+      }
+
+      // 2. LANJUTKAN LEMPAR KE FOLLOW-UP (Disesuaikan dengan schedule_date & assigned_to)
+      const nextDay = new Date();
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      const payload = {
+        lead_id: finalLeadId,
+        survey_id: surveyId,
+        schedule_date: `${nextDay.toISOString().split("T")[0]}T10:00:00`,
+        notes: `Follow-up hasil survey unit: ${detail.properties?.title || "-"}. Catatan: ${feedback || notes || "Lanjutkan penawaran."}`,
+        assigned_to: assignedTo || "Admin CRM",
+        status: "PENDING",
+      };
+
+      const res = await fetch("/api/admin/crm/follow-ups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        alert("Berhasil! Jadwal survey ini telah diteruskan ke daftar Follow-Up.");
+        onUpdated(); // Me-refresh tabel di background agar status sinkron
+        onClose();   // Tutup modal drawer
+      } else {
+        alert(`Gagal meneruskan ke follow-up: ${json.error || "Terjadi kesalahan di database."}`);
+      }
+    } catch (err) {
+      console.error("Error pada handleSendToFollowUp:", err);
+      alert(err instanceof Error ? err.message : "Terjadi kesalahan sistem saat mengirim data.");
+    } finally {
+      setConvertingToFollowUp(false);
     }
   };
 
@@ -434,7 +542,20 @@ function SurveyDetailDrawer({
           <form onSubmit={handleUpdate} className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
             {/* Informational Cards */}
             <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 space-y-2">
-              <h3 className="font-bold text-amber-900 text-xs">Informasi Buyer & Properti</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-amber-900 text-xs">Informasi Buyer & Properti</h3>
+                
+                {/* Tombol Lempar ke Follow Up */}
+                <button
+                  type="button"
+                  disabled={convertingToFollowUp}
+                  onClick={handleSendToFollowUp}
+                  className="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded-xl font-bold text-[10px] transition cursor-pointer disabled:opacity-50"
+                >
+                  <Send className="h-3 w-3" /> {convertingToFollowUp ? "Mengirim..." : "Lempar ke Follow-Up"}
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-700">
                 <div>
                   <span className="text-gray-400">Buyer:</span>{" "}

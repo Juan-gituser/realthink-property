@@ -5,7 +5,6 @@ import {
   Users,
   Search,
   Plus,
-  Filter,
   Phone,
   Mail,
   Calendar,
@@ -16,12 +15,8 @@ import {
   AlertCircle,
   X,
   Send,
-  UserCheck,
-  Tag,
-  DollarSign,
-  Layers,
 } from "lucide-react";
-import { LeadStatus, LeadSource, ActivityType } from "@/types/crm";
+import { LeadStatus, LeadSource, ActivityType, FollowUpItem } from "@/types/crm";
 
 interface AttachedProperty {
   id: string;
@@ -69,6 +64,20 @@ const STATUS_BADGES: Record<
   LOST: { label: "BATAL/LOST", bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200" },
 };
 
+const ACTIVITY_LABELS: Record<ActivityType, { label: string; bg: string; text: string }> = {
+  LEAD_CREATED: { label: "Lead Dibuat", bg: "bg-blue-50", text: "text-blue-700" },
+  WHATSAPP: { label: "WhatsApp Chat", bg: "bg-emerald-50", text: "text-emerald-700" },
+  CALL: { label: "Panggilan Telepon", bg: "bg-teal-50", text: "text-teal-700" },
+  EMAIL: { label: "Email Terkirim", bg: "bg-purple-50", text: "text-purple-700" },
+  NOTE: { label: "Catatan", bg: "bg-gray-100", text: "text-gray-700" },
+  SURVEY_SCHEDULED: { label: "Survey Dijadwalkan", bg: "bg-amber-50", text: "text-amber-700" },
+  SURVEY_COMPLETED: { label: "Survey Selesai", bg: "bg-emerald-50", text: "text-emerald-700" },
+  NEGOTIATION: { label: "Negosiasi", bg: "bg-orange-50", text: "text-orange-700" },
+  BOOKING: { label: "Booking Unit", bg: "bg-indigo-50", text: "text-indigo-700" },
+  CLOSING: { label: "Closing / Akad", bg: "bg-emerald-100", text: "text-emerald-900" },
+  STATUS_CHANGED: { label: "Status Berubah", bg: "bg-blue-100", text: "text-blue-800" },
+};
+
 const SOURCES: LeadSource[] = [
   "Website",
   "Instagram",
@@ -97,7 +106,7 @@ export default function AdminCRMLeadsPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // Fetch Leads dengan Penanganan HTTP Status & Content-Type Aman
+  // Fetch Leads
   const fetchLeads = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -107,17 +116,14 @@ export default function AdminCRMLeadsPage() {
       if (statusFilter) params.set("status", statusFilter);
       if (sourceFilter) params.set("source", sourceFilter);
 
-      // Panggil Endpoint API CRM Leads
       const res = await fetch(`/api/admin/crm/leads?${params.toString()}`);
 
-      // 1. Validasi HTTP Status Code
       if (!res.ok) {
         throw new Error(
           `Endpoint API mengembalikan status HTTP ${res.status}. Pastikan route /api/admin/crm/leads sudah ada.`
         );
       }
 
-      // 2. Validasi bahwa response memang JSON, bukan halaman HTML
       const contentType = res.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         throw new Error("Server mengembalikan halaman HTML/Error, bukan data JSON.");
@@ -153,11 +159,10 @@ export default function AdminCRMLeadsPage() {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
-      // Optimistic Update
       setLeads((prev) =>
         prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l))
       );
-    } catch (err) {
+    } catch {
       alert("Gagal memperbarui status lead");
     }
   };
@@ -209,7 +214,7 @@ export default function AdminCRMLeadsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:border-amber-500 focus:outline-none"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:border-amber-500 focus:outline-none bg-white"
           >
             <option value="">Semua Status Pipeline</option>
             {Object.keys(STATUS_BADGES).map((st) => (
@@ -224,7 +229,7 @@ export default function AdminCRMLeadsPage() {
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:border-amber-500 focus:outline-none"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:border-amber-500 focus:outline-none bg-white"
           >
             <option value="">Semua Source</option>
             {SOURCES.map((src) => (
@@ -237,128 +242,166 @@ export default function AdminCRMLeadsPage() {
       </div>
 
       {/* Leads Data Table */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
-        {loading ? (
-          <div className="p-12 text-center text-xs text-gray-400">Memuat pipeline leads...</div>
-        ) : error ? (
-          <div className="flex items-center justify-center gap-2 p-8 text-xs text-rose-500">
-            <AlertCircle className="h-4 w-4" /> {error}
-          </div>
-        ) : leads.length === 0 ? (
-          <div className="p-12 text-center text-xs text-gray-500">
-            Belum ada lead yang sesuai filter.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-gray-200 bg-gray-50 font-semibold uppercase text-gray-500">
-                <tr>
-                  <th className="px-5 py-4">Lead ID & Nama</th>
-                  <th className="px-4 py-4">Kontak</th>
-                  <th className="px-4 py-4">Source</th>
-                  <th className="px-4 py-4">Properti Minat</th>
-                  <th className="px-4 py-4">Budget Range</th>
-                  <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4">Next Follow-Up</th>
-                  <th className="px-5 py-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {leads.map((lead) => {
-                  const badge = STATUS_BADGES[lead.status] || STATUS_BADGES.NEW;
-                  const propertyCount = lead.lead_properties?.length || 0;
+<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xs">
+  {loading ? (
+    <div className="p-12 text-center text-xs text-gray-400">Memuat pipeline leads...</div>
+  ) : error ? (
+    <div className="flex items-center justify-center gap-2 p-8 text-xs text-rose-500">
+      <AlertCircle className="h-4 w-4" /> {error}
+    </div>
+  ) : leads.length === 0 ? (
+    <div className="p-12 text-center text-xs text-gray-500">
+      Belum ada lead yang sesuai filter.
+    </div>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-xs">
+        <thead className="border-b border-gray-200 bg-gray-50 font-semibold uppercase text-gray-500">
+          <tr>
+            <th className="px-5 py-4">Lead ID & Nama</th>
+            <th className="px-4 py-4">Kontak</th>
+            <th className="px-4 py-4">Source</th>
+            <th className="px-4 py-4">Properti Minat</th>
+            <th className="px-4 py-4">Budget Range</th>
+            <th className="px-4 py-4">Status</th>
+            <th className="px-4 py-4">Next Follow-Up</th>
+            <th className="px-5 py-4 text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {leads.map((lead) => {
+            const badge = STATUS_BADGES[lead.status] || STATUS_BADGES.NEW;
 
-                  return (
-                    <tr key={lead.id} className="hover:bg-gray-50/60 transition">
-                      <td className="px-5 py-4">
-                        <div className="font-mono text-[10px] text-amber-600 font-bold">
-                          {lead.lead_id}
+            return (
+              <tr key={lead.id || lead.lead_id} className="hover:bg-gray-50/60 transition">
+                <td className="px-5 py-4">
+                  <div className="font-mono text-[10px] text-amber-600 font-bold">
+                    {lead.lead_id || `ID-${lead.id.slice(0, 6)}`}
+                  </div>
+                  <div className="font-bold text-gray-900 text-sm">{lead.name || "Tanpa Nama"}</div>
+                </td>
+                <td className="px-4 py-4">
+                  <div className="flex items-center gap-1.5 font-medium text-gray-700">
+                    <Phone className="h-3 w-3 text-emerald-600" /> {lead.whatsapp || "-"}
+                  </div>
+                  {lead.email && (
+                    <div className="flex items-center gap-1.5 text-gray-400 text-[11px] mt-0.5">
+                      <Mail className="h-3 w-3" /> {lead.email}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-4">
+                  <span className="inline-flex w-fit rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+                    {lead.source || "Website"}
+                  </span>
+                </td>
+
+                {/* PROPERTI MINAT (LIGHT THEME & RAPI) */}
+                <td className="px-4 py-4 align-middle">
+                  {(() => {
+                    const properties = (lead.lead_properties || [])
+                      .map((lp: any) => lp.properties)
+                      .filter(Boolean);
+
+                    if (properties.length === 0) {
+                      return <span className="text-gray-400 italic text-xs">Belum diset</span>;
+                    }
+
+                    const firstProp = properties[0];
+                    const extraCount = properties.length - 1;
+
+                    return (
+                      <div className="group relative inline-block">
+                        {/* Badge Utama */}
+                        <div className="flex items-center gap-1.5 rounded-xl border border-amber-200/80 bg-amber-50/60 px-2.5 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100/80 cursor-pointer whitespace-nowrap">
+                          <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-amber-600" />
+                          <span className="truncate max-w-[140px] font-medium text-gray-800" title={firstProp.title}>
+                            {firstProp.title}
+                          </span>
+                          {extraCount > 0 && (
+                            <span className="flex-shrink-0 rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                              +{extraCount}
+                            </span>
+                          )}
                         </div>
-                        <div className="font-bold text-gray-900 text-sm">{lead.name}</div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                          <Phone className="h-3 w-3 text-emerald-600" /> {lead.whatsapp}
-                        </div>
-                        {lead.email && (
-                          <div className="flex items-center gap-1.5 text-gray-400 text-[11px] mt-0.5">
-                            <Mail className="h-3 w-3" /> {lead.email}
+
+                        {/* Hover Card (Light Theme) */}
+                        <div className="absolute left-0 top-full mt-1.5 hidden group-hover:block z-50 min-w-[250px] max-w-[300px] rounded-2xl border border-gray-200 bg-white p-3 shadow-xl transition-all">
+                          <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
+                            <span className="text-xs font-bold text-gray-800">Properti Minat</span>
+                            <span className="rounded-full bg-amber-50 border border-amber-200/60 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                              {properties.length} Properti
+                            </span>
                           </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-col gap-1.5">
-                          <span className="inline-flex w-fit rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
-                            {lead.source}
-                          </span>
-                          {(lead.source === "Website" || lead.source === "Titip Properti") &&
-                            (lead.notes?.includes("Titip Properti") || lead.source === "Titip Properti") && (
-                              <span className="inline-flex w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
-                                Titip Properti
-                              </span>
-                            )}
+
+                          <ul className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
+                            {properties.map((p: any, idx: number) => (
+                              <li key={p.id || idx} className="rounded-lg bg-gray-50/80 p-2 border border-gray-100 text-xs">
+                                <p className="font-semibold text-gray-800 truncate">{idx + 1}. {p.title || "Tanpa Judul"}</p>
+                                {p.price && (
+                                  <p className="mt-0.5 text-[11px] font-mono font-bold text-amber-600">
+                                    {typeof formatRupiah === "function" ? formatRupiah(p.price) : `Rp ${Number(p.price).toLocaleString("id-ID")}`}
+                                  </p>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        {propertyCount > 0 ? (
-                          <div className="flex items-center gap-1.5 font-semibold text-gray-700">
-                            <Building2 className="h-3.5 w-3.5 text-amber-500" />
-                            <span>{propertyCount} Properti</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 italic">Belum diset</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4 font-mono text-[11px] text-gray-600">
-                        {lead.budget_min || lead.budget_max ? (
-                          <span>
-                            {formatRupiah(lead.budget_min)} - {formatRupiah(lead.budget_max)}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 italic">Unspecified</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <select
-                          value={lead.status}
-                          onChange={(e) =>
-                            handleStatusChange(lead.id, e.target.value as LeadStatus)
-                          }
-                          className={`rounded-full border px-2.5 py-1 text-[10px] font-bold focus:outline-none cursor-pointer ${badge.bg} ${badge.text} ${badge.border}`}
-                        >
-                          {Object.keys(STATUS_BADGES).map((st) => (
-                            <option key={st} value={st}>
-                              {STATUS_BADGES[st as LeadStatus].label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-4 text-gray-500 text-[11px]">
-                        {lead.next_follow_up_at ? (
-                          <span className="flex items-center gap-1 font-medium text-amber-700">
-                            <Calendar className="h-3 w-3" />{" "}
-                            {new Date(lead.next_follow_up_at).toLocaleDateString("id-ID")}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <button
-                          onClick={() => setSelectedLeadId(lead.id)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition"
-                        >
-                          Detail <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                      </div>
+                    );
+                  })()}
+                </td>
+
+                <td className="px-4 py-4 font-mono text-[11px] text-gray-600">
+                  {lead.budget_min || lead.budget_max ? (
+                    <span>
+                      {formatRupiah(lead.budget_min)} - {formatRupiah(lead.budget_max)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 italic">Unspecified</span>
+                  )}
+                </td>
+                <td className="px-4 py-4">
+                  <select
+                    value={lead.status || "NEW"}
+                    onChange={(e) =>
+                      handleStatusChange(lead.id, e.target.value as LeadStatus)
+                    }
+                    className={`rounded-full border px-2.5 py-1 text-[10px] font-bold focus:outline-none cursor-pointer ${badge.bg} ${badge.text} ${badge.border}`}
+                  >
+                    {Object.keys(STATUS_BADGES).map((st) => (
+                      <option key={st} value={st}>
+                        {STATUS_BADGES[st as LeadStatus].label}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-4 py-4 text-gray-500 text-[11px]">
+                  {lead.next_follow_up_at ? (
+                    <span className="flex items-center gap-1 font-medium text-amber-700">
+                      <Calendar className="h-3 w-3" />{" "}
+                      {new Date(lead.next_follow_up_at).toLocaleDateString("id-ID")}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
+                <td className="px-5 py-4 text-right">
+                  <button
+                    onClick={() => setSelectedLeadId(lead.id)}
+                    className="inline-flex items-center gap-1 rounded-xl bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition cursor-pointer"
+                  >
+                    Detail <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
 
       {/* Drawer Detail Lead */}
       {selectedLeadId && (
@@ -384,7 +427,7 @@ export default function AdminCRMLeadsPage() {
 }
 
 /* ====================================================================
-   SUB-COMPONENT 1: LEAD DETAIL DRAWER
+   SUB-COMPONENT 1: LEAD DETAIL DRAWER (LENGKAP DENGAN AKSI MANUAL)
 ==================================================================== */
 function LeadDetailDrawer({
   leadId,
@@ -402,36 +445,151 @@ function LeadDetailDrawer({
     email?: string;
     source?: string;
     preferred_area?: string;
+    budget_min?: number;
+    budget_max?: number;
+    next_follow_up_at?: string;
     lead_properties?: Array<{
       id: string;
       property_id: string;
       interest_status: string;
       properties?: {
         title?: string;
+        name?: string;
         price?: number;
       };
     }>;
     activities?: Array<{
       id: string;
-      activity_type: string;
+      type: ActivityType;
       created_at: string;
       description: string;
     }>;
   } | null>(null);
+
+  const [followUps, setFollowUps] = useState<FollowUpItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // New activity form
+  // State untuk Edit Manual Informasi Klien
+  const [isEditing, setIsEditing] = useState(false);
+  const [budgetMin, setBudgetMin] = useState<number | string>("");
+  const [budgetMax, setBudgetMax] = useState<number | string>("");
+  const [nextFollowUp, setNextFollowUp] = useState("");
+
+  // State untuk Edit Properti Minat dari Katalog
+  const [propertiesCatalog, setPropertiesCatalog] = useState<
+    Array<{ id: string; title?: string; name?: string; price?: number }>
+  >([]);
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [selectedPropToAdd, setSelectedPropToAdd] = useState("");
+  const [isEditingProps, setIsEditingProps] = useState(false);
+  const [savingProps, setSavingProps] = useState(false);
+
+  // New Follow Up Form State
+  const [fuDate, setFuDate] = useState("");
+  const [fuTime, setFuTime] = useState("10:00");
+  const [fuNotes, setFuNotes] = useState("");
+  const [fuPic, setFuPic] = useState("");
+
+  // New Activity Form State
   const [activityType, setActivityType] = useState<ActivityType>("NOTE");
   const [activityDesc, setActivityDesc] = useState("");
   const [submittingAct, setSubmittingAct] = useState(false);
 
+  // Fetch Katalog Properti
+  const fetchPropertiesCatalog = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/properties");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) setPropertiesCatalog(json.data || []);
+      }
+    } catch (e) {
+      console.error("Gagal memuat katalog properti", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPropertiesCatalog();
+  }, [fetchPropertiesCatalog]);
+
   const fetchDetail = useCallback(async () => {
     setLoading(true);
     try {
+      // 1. Fetch Lead Detail
       const res = await fetch(`/api/admin/crm/leads/${leadId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success) setDetail(data.data);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setDetail(data.data);
+          // Sinkronisasi state form edit dengan data terbaru
+          setBudgetMin(data.data.budget_min ?? "");
+          setBudgetMax(data.data.budget_max ?? "");
+          setNextFollowUp(
+            data.data.next_follow_up_at
+              ? data.data.next_follow_up_at.split("T")[0]
+              : ""
+          );
+
+          // Sinkronisasi properti terpilih
+          if (Array.isArray(data.data.lead_properties)) {
+            setSelectedPropertyIds(
+              data.data.lead_properties.map((lp: any) => lp.property_id)
+            );
+          }
+        }
+      }
+
+      // 2. Fetch Follow Ups
+      const resFu = await fetch(`/api/admin/crm/follow-ups?lead_id=${leadId}`);
+      if (resFu.ok) {
+        const dataFu = await resFu.json();
+        if (dataFu.success && Array.isArray(dataFu.data)) {
+          // Normalisasi data agar fu.date & fu.time selalu ada
+          const normalizedFollowUps = dataFu.data.map((item: any) => {
+            const rawDate =
+              item.date ||
+              item.follow_up_date ||
+              item.scheduled_at ||
+              item.created_at ||
+              item.date_time;
+
+            let formattedDate = item.date || "";
+            let formattedTime = item.time || "";
+
+            if (rawDate && (!item.date || !item.time)) {
+              const dateObj = new Date(rawDate);
+              if (!isNaN(dateObj.getTime())) {
+                formattedDate =
+                  item.date ||
+                  dateObj.toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  });
+                formattedTime =
+                  item.time ||
+                  dateObj
+                    .toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })
+                    .replace(".", ":");
+              }
+            }
+
+            return {
+              ...item,
+              date: formattedDate || "-",
+              time: formattedTime || "",
+            };
+          });
+
+          setFollowUps(normalizedFollowUps);
+        } else {
+          setFollowUps([]);
+        }
+      }
     } catch (e) {
       console.error("Gagal memuat detail lead", e);
     } finally {
@@ -447,15 +605,105 @@ function LeadDetailDrawer({
     return () => window.clearTimeout(timeoutId);
   }, [fetchDetail]);
 
+  // Fungsi untuk menyimpan perubahan manual info klien oleh admin
+  const handleSaveManualEdit = async () => {
+    try {
+      const res = await fetch(`/api/admin/crm/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          budget_min: budgetMin ? Number(budgetMin) : null,
+          budget_max: budgetMax ? Number(budgetMax) : null,
+          next_follow_up_at: nextFollowUp
+            ? new Date(nextFollowUp).toISOString()
+            : null,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        setIsEditing(false);
+        fetchDetail();
+        onUpdated();
+      } else {
+        alert("Gagal memperbarui data: " + result.error);
+      }
+    } catch (err) {
+      console.error("Error updating lead:", err);
+    }
+  };
+
+  // Fungsi untuk menyimpan perubahan Properti Minat
+  const handleSaveProperties = async () => {
+    setSavingProps(true);
+    try {
+      const res = await fetch(`/api/admin/crm/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          property_ids: selectedPropertyIds,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        setIsEditingProps(false);
+        fetchDetail();
+        onUpdated();
+      } else {
+        alert("Gagal memperbarui properti minat: " + (result.error || ""));
+      }
+    } catch (err) {
+      console.error("Error updating properties:", err);
+    } finally {
+      setSavingProps(false);
+    }
+  };
+
+  // Handler: Buat Follow Up Baru
+  const handleCreateFollowUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fuDate || !fuTime) return;
+
+    try {
+      const res = await fetch("/api/admin/crm/follow-ups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lead_id: leadId,
+          date: fuDate,
+          time: fuTime,
+          notes: fuNotes,
+          pic: fuPic,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setFuNotes("");
+        setFuDate("");
+        fetchDetail();
+        onUpdated();
+      }
+    } catch {
+      alert("Gagal membuat jadwal follow up");
+    }
+  };
+
+  // Handler: Tambah Aktivitas Manual
   const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activityDesc) return;
     setSubmittingAct(true);
     try {
-      const res = await fetch(`/api/admin/crm/leads/${leadId}/activities`, {
+      const res = await fetch(`/api/admin/crm/activities`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activity_type: activityType, description: activityDesc }),
+        body: JSON.stringify({
+          lead_id: leadId,
+          type: activityType,
+          description: activityDesc,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -471,7 +719,7 @@ function LeadDetailDrawer({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs">
       <div className="w-full max-w-2xl bg-white shadow-2xl flex flex-col h-full overflow-hidden animate-in slide-in-from-right duration-200">
-        {/* Header */}
+        {/* Header Drawer */}
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 bg-gray-50">
           <div>
             <span className="font-mono text-xs font-bold text-amber-600">
@@ -481,13 +729,18 @@ function LeadDetailDrawer({
               {detail?.name || "Detail Lead"}
             </h2>
           </div>
-          <button onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-gray-200">
+          <button
+            onClick={onClose}
+            className="rounded-lg p-2 text-gray-400 hover:bg-gray-200 cursor-pointer"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-xs text-gray-400">Memuat detail lead...</div>
+          <div className="p-12 text-center text-xs text-gray-400">
+            Memuat detail lead...
+          </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Quick Actions */}
@@ -496,116 +749,320 @@ function LeadDetailDrawer({
                 href={`https://wa.me/${detail?.whatsapp}`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700"
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
               >
                 <Phone className="h-4 w-4" /> Chat WhatsApp
               </a>
             </div>
 
-            {/* General Info Card */}
-            <div className="rounded-2xl border border-gray-200 p-4 space-y-3 bg-gray-50/50">
-              <h3 className="text-xs font-bold text-gray-500 uppercase">Informasi Klien</h3>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-gray-400">WhatsApp:</span>{" "}
-                  <p className="font-semibold text-gray-900">{detail?.whatsapp}</p>
-                </div>
-                <div>
-                  <span className="text-gray-400">Email:</span>{" "}
-                  <p className="font-semibold text-gray-900">{detail?.email || "-"}</p>
-                </div>
-                <div>
-                  <span className="text-gray-400">Source:</span>{" "}
-                  <p className="font-semibold text-gray-900">{detail?.source}</p>
-                </div>
-                <div>
-                  <span className="text-gray-400">Preferred Area:</span>{" "}
-                  <p className="font-semibold text-gray-900">{detail?.preferred_area || "-"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Attached Properties */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-amber-500" /> Properti Minat (
-                {detail?.lead_properties?.length || 0})
-              </h3>
-              <div className="space-y-2">
-                {detail?.lead_properties?.map((lp) => (
-                  <div
-                    key={lp.id}
-                    className="rounded-xl border border-gray-200 p-3 bg-white flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">
-                        {lp.properties?.title || "Properti ID: " + lp.property_id}
-                      </p>
-                      <p className="text-[11px] font-mono text-amber-700">
-                        Rp {lp.properties?.price?.toLocaleString("id-ID")}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                      {lp.interest_status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Add Activity Note */}
-            <form
-              onSubmit={handleAddActivity}
-              className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/40 p-4"
-            >
-              <h3 className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
-                <MessageSquare className="h-4 w-4" /> Catat Aktivitas / Follow-Up
-              </h3>
-              <div className="flex gap-2">
-                <select
-                  value={activityType}
-                  onChange={(e) => setActivityType(e.target.value as ActivityType)}
-                  className="rounded-xl border border-gray-200 bg-white px-2 py-1.5 text-xs focus:outline-none"
-                >
-                  <option value="CALL">Call</option>
-                  <option value="WHATSAPP">WhatsApp</option>
-                  <option value="EMAIL">Email</option>
-                  <option value="MEETING">Meeting</option>
-                  <option value="NOTE">Note</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="Deskripsi aktivitas..."
-                  value={activityDesc}
-                  onChange={(e) => setActivityDesc(e.target.value)}
-                  className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs focus:outline-none"
-                />
+            {/* General Info Card (INFORMASI KLIEN dengan Mode Edit) */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200 space-y-3 shadow-xs">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-gray-700">INFORMASI KLIEN</h3>
                 <button
-                  type="submit"
-                  disabled={submittingAct}
-                  className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-amber-600"
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="text-xs text-amber-600 font-medium hover:underline cursor-pointer"
                 >
-                  <Send className="h-3.5 w-3.5" />
+                  {isEditing ? "Batal" : "Edit Manual"}
                 </button>
               </div>
-            </form>
 
-            {/* Activity Timeline */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-amber-500" /> Timeline Aktivitas
-              </h3>
-              <div className="relative border-l-2 border-amber-200 ml-3 space-y-4 pl-4">
-                {detail?.activities?.map((act) => (
-                  <div key={act.id} className="relative">
-                    <div className="absolute -left-5.75[23px] top-1.5 h-3 w-3 rounded-full bg-amber-500 border-2 border-white" />
-                    <div className="text-[10px] font-bold text-amber-700 uppercase">
-                      {act.activity_type} • {new Date(act.created_at).toLocaleString("id-ID")}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-400 text-xs block">WhatsApp:</span>
+                  <p className="font-medium text-gray-800">{detail?.whatsapp}</p>
+                </div>
+                <div>
+                  <span className="text-gray-400 text-xs block">Email:</span>
+                  <p className="font-medium text-gray-800">
+                    {detail?.email || "-"}
+                  </p>
+                </div>
+
+                {/* Budget Range */}
+                <div className="col-span-2">
+                  <span className="text-gray-400 text-xs block">Budget Range:</span>
+                  {isEditing ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="number"
+                        placeholder="Min Budget"
+                        value={budgetMin}
+                        onChange={(e) => setBudgetMin(e.target.value)}
+                        className="w-full text-xs p-1.5 border border-gray-200 rounded-md focus:outline-none focus:border-amber-500"
+                      />
+                      <span>-</span>
+                      <input
+                        type="number"
+                        placeholder="Max Budget"
+                        value={budgetMax}
+                        onChange={(e) => setBudgetMax(e.target.value)}
+                        className="w-full text-xs p-1.5 border border-gray-200 rounded-md focus:outline-none focus:border-amber-500"
+                      />
                     </div>
-                    <p className="text-xs text-gray-800 font-medium">{act.description}</p>
-                  </div>
-                ))}
+                  ) : (
+                    <p className="font-medium text-gray-800">
+                      {detail?.budget_min || detail?.budget_max
+                        ? `Rp ${Number(detail?.budget_min || 0).toLocaleString()} - Rp ${Number(detail?.budget_max || 0).toLocaleString()}`
+                        : "Unspecified"}
+                    </p>
+                  )}
+                </div>
+
+                {/* Next Follow-Up */}
+                <div className="col-span-2">
+                  <span className="text-gray-400 text-xs block">Next Follow-Up:</span>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={nextFollowUp}
+                      onChange={(e) => setNextFollowUp(e.target.value)}
+                      className="w-full text-xs p-1.5 border border-gray-200 rounded-md mt-1 focus:outline-none focus:border-amber-500"
+                    />
+                  ) : (
+                    <p className="font-medium text-gray-800">
+                      {detail?.next_follow_up_at
+                        ? new Date(detail.next_follow_up_at).toLocaleDateString("id-ID", {
+                            dateStyle: "medium",
+                          })
+                        : "-"}
+                    </p>
+                  )}
+                </div>
               </div>
+
+              {isEditing && (
+                <button
+                  onClick={handleSaveManualEdit}
+                  className="w-full mt-2 bg-amber-500 text-white text-xs py-2 rounded-lg font-medium hover:bg-amber-600 transition cursor-pointer"
+                >
+                  Simpan Perubahan
+                </button>
+              )}
+            </div>
+
+            {/* Attached Properties (PROPERTI MINAT dengan Pemilihan dari Katalog) */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-amber-500" /> Properti Minat (
+                  {detail?.lead_properties?.length || 0})
+                </h3>
+                <button
+                  onClick={() => setIsEditingProps(!isEditingProps)}
+                  className="text-xs text-amber-600 font-medium hover:underline cursor-pointer"
+                >
+                  {isEditingProps ? "Batal" : "Edit Properti"}
+                </button>
+              </div>
+
+              {isEditingProps ? (
+                <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-200 space-y-3">
+                  {/* Select Katalog */}
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedPropToAdd}
+                      onChange={(e) => setSelectedPropToAdd(e.target.value)}
+                      className="flex-1 text-xs p-2 rounded-lg border border-gray-300 focus:outline-none focus:border-amber-500 bg-white"
+                    >
+                      <option value="">-- Pilih Properti dari Katalog --</option>
+                      {propertiesCatalog.map((p) => (
+                        <option
+                          key={p.id}
+                          value={p.id}
+                          disabled={selectedPropertyIds.includes(p.id)}
+                        >
+                          {p.title || p.name} - Rp{" "}
+                          {p.price ? Number(p.price).toLocaleString("id-ID") : 0}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          selectedPropToAdd &&
+                          !selectedPropertyIds.includes(selectedPropToAdd)
+                        ) {
+                          setSelectedPropertyIds([
+                            ...selectedPropertyIds,
+                            selectedPropToAdd,
+                          ]);
+                          setSelectedPropToAdd("");
+                        }
+                      }}
+                      className="bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-bold hover:bg-amber-600 transition cursor-pointer"
+                    >
+                      Tambah
+                    </button>
+                  </div>
+
+                  {/* List Properti Terpilih (Mode Edit) */}
+                  <div className="space-y-1.5">
+                    {selectedPropertyIds.map((id) => {
+                      const prop =
+                        propertiesCatalog.find((p) => p.id === id) ||
+                        detail?.lead_properties?.find(
+                          (lp) => lp.property_id === id
+                        )?.properties;
+                      const title =
+                        prop?.title || prop?.name || `Properti ID: ${id}`;
+                      const price = prop?.price;
+
+                      return (
+                        <div
+                          key={id}
+                          className="flex items-center justify-between bg-white border border-gray-200 p-2.5 rounded-lg text-xs"
+                        >
+                          <div>
+                            <p className="font-bold text-gray-800">{title}</p>
+                            {price ? (
+                              <p className="text-[11px] text-amber-700 font-mono">
+                                Rp {Number(price).toLocaleString("id-ID")}
+                              </p>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedPropertyIds(
+                                selectedPropertyIds.filter((pid) => pid !== id)
+                              )
+                            }
+                            className="text-red-500 hover:text-red-700 font-bold p-1 cursor-pointer"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {selectedPropertyIds.length === 0 && (
+                      <p className="text-xs text-gray-400 italic text-center py-2">
+                        Belum ada properti minat terpilih.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Tombol Simpan Properti */}
+                  <button
+                    type="button"
+                    onClick={handleSaveProperties}
+                    disabled={savingProps}
+                    className="w-full bg-emerald-600 text-white text-xs py-2 rounded-lg font-bold hover:bg-emerald-700 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {savingProps ? "Menyimpan..." : "Simpan Properti Minat"}
+                  </button>
+                </div>
+              ) : (
+                /* Read-only View */
+                <div className="space-y-2">
+                  {detail?.lead_properties?.map((lp) => (
+                    <div
+                      key={lp.id}
+                      className="rounded-xl border border-gray-200 p-3 bg-white flex justify-between items-center"
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-gray-900">
+                          {lp.properties?.title || "Properti ID: " + lp.property_id}
+                        </p>
+                        <p className="text-[11px] font-mono text-amber-700">
+                          Rp {lp.properties?.price?.toLocaleString("id-ID")}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                        {lp.interest_status || "MINAT"}
+                      </span>
+                    </div>
+                  ))}
+                  {(!detail?.lead_properties || detail.lead_properties.length === 0) && (
+                    <div className="text-center p-3 border border-dashed border-gray-200 rounded-xl text-xs text-gray-400">
+                      Belum ada properti minat yang diset
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Form Jadwal Follow-Up Baru */}
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/40 p-4 space-y-3">
+              <h3 className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 text-amber-600" /> Buat Jadwal Follow-Up
+              </h3>
+              <form onSubmit={handleCreateFollowUp} className="space-y-2.5 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="font-semibold text-gray-700 block mb-1">Tanggal</label>
+                    <input
+                      type="date"
+                      value={fuDate}
+                      onChange={(e) => setFuDate(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-white p-2 focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-gray-700 block mb-1">Jam</label>
+                    <input
+                      type="time"
+                      value={fuTime}
+                      onChange={(e) => setFuTime(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 bg-white p-2 focus:outline-none"
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-700 block mb-1">PIC (Petugas)</label>
+                  <input
+                    type="text"
+                    placeholder="Nama sales / agen..."
+                    value={fuPic}
+                    onChange={(e) => setFuPic(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-white p-2 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-700 block mb-1">Catatan Follow-Up</label>
+                  <input
+                    type="text"
+                    placeholder="Misal: Konfirmasi hasil survey lokasi..."
+                    value={fuNotes}
+                    onChange={(e) => setFuNotes(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-white p-2 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full rounded-xl bg-amber-500 py-2 font-bold text-white hover:bg-amber-600 transition cursor-pointer"
+                >
+                  Simpan Jadwal Follow-Up
+                </button>
+              </form>
+
+              {/* List Follow-Up Terjadwal */}
+              {followUps.length > 0 && (
+                <div className="mt-3 space-y-2 border-t border-amber-200 pt-3">
+                  <span className="font-bold text-[11px] text-amber-900 block">Daftar Follow-Up:</span>
+                  {followUps.map((fu: any) => {
+                    const displayDate = fu.date || (fu.schedule_date ? fu.schedule_date.split("T")[0] : "-");
+                    const displayTime = fu.time || (fu.schedule_date ? new Date(fu.schedule_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "");
+
+                    return (
+                      <div key={fu.id} className="bg-white rounded-xl p-2.5 border border-amber-100 flex justify-between items-center text-xs">
+                        <div>
+                          <div className="font-bold text-gray-800">
+                            {displayDate} {displayTime ? `pukul ${displayTime}` : ""}
+                          </div>
+                          <p className="text-gray-500 text-[11px]">{fu.notes || "Tanpa catatan"}</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${fu.status === "COMPLETED" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          {fu.status || "PENDING"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -667,7 +1124,7 @@ function CreateLeadModal({
       <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl space-y-4">
         <div className="flex justify-between items-center border-b pb-3">
           <h2 className="text-lg font-bold text-gray-900">Tambah Lead Baru</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -712,7 +1169,7 @@ function CreateLeadModal({
               <select
                 value={source}
                 onChange={(e) => setSource(e.target.value as LeadSource)}
-                className="mt-1 w-full rounded-xl border p-2 focus:border-amber-500 focus:outline-none"
+                className="mt-1 w-full rounded-xl border p-2 focus:border-amber-500 focus:outline-none bg-white"
               >
                 {SOURCES.map((s) => (
                   <option key={s} value={s}>
@@ -758,14 +1215,14 @@ function CreateLeadModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 font-bold text-gray-500 hover:bg-gray-100"
+              className="rounded-xl px-4 py-2 font-bold text-gray-500 hover:bg-gray-100 cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-xl bg-amber-500 px-5 py-2 font-bold text-white hover:bg-amber-600"
+              className="rounded-xl bg-amber-500 px-5 py-2 font-bold text-white hover:bg-amber-600 cursor-pointer"
             >
               {loading ? "Menyimpan..." : "Simpan Lead"}
             </button>

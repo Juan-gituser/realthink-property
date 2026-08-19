@@ -1,142 +1,176 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import PropertyMap from "@/components/PropertyMap";
 import SurveyModal from "@/components/SurveyModal";
-import { MapPin, Calendar, MessageSquare, Phone, Mail, Heart } from "lucide-react";
+import { 
+  MapPin, 
+  Calendar, 
+  MessageSquare, 
+  Phone, 
+  Mail, 
+  Heart,
+  ChevronLeft, 
+  ChevronRight 
+} from "lucide-react";
 
-export default function DetailPropertyPage() {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export default function DetailPropertyPage({ propertyId }: { propertyId: string }) {
+  const [property, setProperty] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [isSurveyOpen, setIsSurveyOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // Contoh data properti
-  const properti = {
-    id: "prop-001",
-    title: "Modern Minimalist House BSD",
-    address: "Jl. Grand Boulevard No. 10, BSD City, Tangerang Selatan",
-    lat: -6.2995,
-    lng: 106.6518,
-    whatsapp: "6281234567890",
-    phone: "+6221555888",
-    email: "info@properti.com",
-  };
+  useEffect(() => {
+    async function fetchPropertyDetail() {
+      try {
+        const { data, error } = await supabase
+          .from("properties")
+          .select("*")
+          .eq("id", propertyId)
+          .single();
 
-  // Helper function untuk Google Analytics Event Tracking (gtag)
-  const trackGAEvent = (action: string, params?: Record<string, unknown>) => {
-    if (
-      typeof window !== "undefined" &&
-      (window as unknown as { gtag?: (...args: unknown[]) => void }).gtag
-    ) {
-      (window as unknown as { gtag: (...args: unknown[]) => void }).gtag("event", action, params);
+        if (error) throw error;
+        
+        // Normalisasi format gambar agar aman dibaca menjadi Array
+        let rawImages = data?.images;
+        if (typeof rawImages === "string") {
+          try {
+            // Coba parse jika formatnya JSON string array (misal: '["url1","url2"]')
+            rawImages = JSON.parse(rawImages);
+          } catch {
+            // Jika dipisah koma (misal: 'url1,url2') atau hanya 1 string URL biasa
+            rawImages = rawImages.includes(",") ? rawImages.split(",").map((s: string) => s.trim()) : [rawImages];
+          }
+        }
+        
+        setProperty({
+          ...data,
+          images: Array.isArray(rawImages) ? rawImages : []
+        });
+      } catch (err) {
+        console.error("Gagal memuat detail properti:", err);
+      } finally {
+        setLoading(false);
+      }
     }
-  };
 
-  // 1. Handler Klik WhatsApp
-  const handleWhatsAppClick = () => {
-    trackGAEvent("click_whatsapp", { property_id: properti.id, property_title: properti.title });
-    window.open(
-      `https://wa.me/${properti.whatsapp}?text=Halo, saya tertarik dengan properti ${properti.title}`,
-      "_blank"
+    if (propertyId) {
+      fetchPropertyDetail();
+    }
+  }, [propertyId]);
+
+  const prevImage = () => {
+    if (!property?.images) return;
+    setCurrentImageIndex((prev) => 
+      prev === 0 ? property.images.length - 1 : prev - 1
     );
   };
 
-  // 2. Handler Klik Telepon
-  const handlePhoneClick = () => {
-    trackGAEvent("click_phone", { property_id: properti.id, property_title: properti.title });
-    window.location.href = `tel:${properti.phone}`;
+  const nextImage = () => {
+    if (!property?.images) return;
+    setCurrentImageIndex((prev) => 
+      prev === property.images.length - 1 ? 0 : prev + 1
+    );
   };
 
-  // 3. Handler Klik Email
-  const handleEmailClick = () => {
-    trackGAEvent("click_email", { property_id: properti.id, property_title: properti.title });
-    window.location.href = `mailto:${properti.email}?subject=Tertarik dengan ${properti.title}`;
-  };
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Memuat data properti...</div>;
+  }
 
-  // 4. Handler Favorite Property
-  const handleFavoriteClick = () => {
-    const newStatus = !isFavorite;
-    setIsFavorite(newStatus);
-    trackGAEvent("favorite_property", {
-      property_id: properti.id,
-      property_title: properti.title,
-      status: newStatus ? "added" : "removed",
-    });
-  };
-
-  // 5. Handler Klik Jadwalkan Survei
-  const handleSurveyClick = () => {
-    trackGAEvent("click_schedule_survey", {
-      property_id: properti.id,
-      property_title: properti.title,
-    });
-    setIsSurveyOpen(true);
-  };
-
-  // 6. Handler Submit Konsultasi
-  const handleConsultationSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    trackGAEvent("submit_consultation", {
-      property_id: properti.id,
-      property_title: properti.title,
-    });
-    alert("Konsultasi berhasil dikirim!");
-  };
-
-  // 7. Handler Submit Survei (Dihandle ketika modal survei sukses mengirim data)
-  const handleSurveySubmitSuccess = () => {
-    trackGAEvent("submit_survey", { property_id: properti.id, property_title: properti.title });
-    setIsSurveyOpen(false);
-  };
+  if (!property) {
+    return <div className="min-h-screen flex items-center justify-center">Properti tidak ditemukan.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-16">
       <div className="container mx-auto max-w-4xl space-y-8 px-4">
-        {/* Informasi Utama Properti & Tombol Aksi */}
+        
+        {property.images && property.images.length > 0 ? (
+          <div className="relative w-full h-75[300px] md:h-125[500px] overflow-hidden rounded-2xl bg-gray-200 shadow-sm">
+            <img 
+              src={property.images[currentImageIndex]} 
+              alt={`${property.title} - Foto ${currentImageIndex + 1}`} 
+              className="w-full h-full object-cover transition-all duration-300"
+            />
+
+            {property.images.length > 1 && (
+              <>
+                <button 
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-md cursor-pointer transition z-10"
+                  aria-label="Previous Image"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-gray-800 p-3 rounded-full shadow-md cursor-pointer transition z-10"
+                  aria-label="Next Image"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-3 py-1 rounded-full text-white text-xs font-medium z-10">
+                  {currentImageIndex + 1} / {property.images.length}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="w-full h-75[300px] md:h-125[500px] bg-gray-200 rounded-2xl flex items-center justify-center text-gray-400">
+            Tidak ada foto tersedia
+          </div>
+        )}
+
         <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
-              <h1 className="font-heading text-2xl font-bold text-gray-900">{properti.title}</h1>
+              <h1 className="font-heading text-2xl font-bold text-gray-900">{property.title}</h1>
               <p className="flex items-center gap-1 text-xs text-gray-500">
-                <MapPin className="h-3.5 w-3.5 text-amber-600" /> {properti.address}
+                <MapPin className="h-3.5 w-3.5 text-amber-600" /> {property.address}
               </p>
             </div>
 
-            {/* Tombol Favorite Property */}
             <button
-              onClick={handleFavoriteClick}
+              onClick={() => setIsFavorite(!isFavorite)}
               className={`flex cursor-pointer items-center justify-center rounded-xl border p-3 transition ${
                 isFavorite
                   ? "border-red-200 bg-red-50 text-red-600"
                   : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100"
               }`}
-              title="Favorite Property"
             >
               <Heart className={`h-5 w-5 ${isFavorite ? "fill-red-600" : ""}`} />
             </button>
           </div>
 
-          {/* Grid Tombol Interaksi & Tracking */}
           <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2 md:grid-cols-4">
             <button
-              onClick={handleSurveyClick}
+              onClick={() => setIsSurveyOpen(true)}
               className="bg-secondary hover:bg-secondary/90 text-primary flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-bold shadow-sm transition"
             >
               <Calendar className="h-4 w-4" /> Jadwalkan Survei
             </button>
             <button
-              onClick={handleWhatsAppClick}
+              onClick={() => window.open(`https://wa.me/${property.whatsapp}?text=Halo, saya tertarik dengan properti ${property.title}`, "_blank", "noopener,noreferrer")}
               className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-green-700"
             >
               <MessageSquare className="h-4 w-4" /> WhatsApp
             </button>
             <button
-              onClick={handlePhoneClick}
+              onClick={() => window.location.href = `tel:${property.phone}`}
               className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
               <Phone className="h-4 w-4" /> Telepon
             </button>
             <button
-              onClick={handleEmailClick}
+              onClick={() => window.location.href = `mailto:${property.email}`}
               className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gray-800 px-4 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-gray-900"
             >
               <Mail className="h-4 w-4" /> Email
@@ -144,48 +178,24 @@ export default function DetailPropertyPage() {
           </div>
         </div>
 
-        {/* Form Konsultasi Properti (Submit Konsultasi) */}
-        <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900">Form Konsultasi Properti</h2>
-          <form onSubmit={handleConsultationSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-gray-700">
-                Pertanyaan / Pesan Konsultasi
-              </label>
-              <textarea
-                rows={3}
-                required
-                placeholder="Tuliskan pertanyaan Anda mengenai properti ini..."
-                className="w-full rounded-xl border border-gray-300 p-3 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              ></textarea>
-            </div>
-            <button
-              type="submit"
-              className="bg-primary hover:bg-primary/90 cursor-pointer rounded-xl px-6 py-2.5 text-sm font-bold text-white transition"
-            >
-              Submit Konsultasi
-            </button>
-          </form>
-        </div>
-
-        {/* Peta Interaktif Lokasi Properti */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <PropertyMap
-            lat={properti.lat}
-            lng={properti.lng}
-            address={properti.address}
-            title={properti.title}
-          />
-        </div>
+        {property.lat && property.lng && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <PropertyMap
+              lat={property.lat}
+              lng={property.lng}
+              address={property.address}
+              title={property.title}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Modal Survei (Submit Survei) */}
       <SurveyModal
         isOpen={isSurveyOpen}
         onClose={() => setIsSurveyOpen(false)}
-        propertyId={properti.id}
-        propertyTitle={properti.title}
-        onSubmitSuccess={handleSurveySubmitSuccess}
+        propertyId={property.id}
+        propertyTitle={property.title}
+        onSubmitSuccess={() => setIsSurveyOpen(false)}
       />
     </div>
   );

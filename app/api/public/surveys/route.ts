@@ -57,9 +57,9 @@ export async function POST(req: Request) {
       leadId = newLead.id;
     }
 
-    // 2. Buat Record Survey
+    // 2. Buat Record Survey (Ubah dari "surveys" ke "property_surveys")
     const { data: survey, error: surveyErr } = await supabase
-      .from("surveys")
+      .from("property_surveys") // <-- Diubah di sini
       .insert({
         lead_id: leadId,
         property_id,

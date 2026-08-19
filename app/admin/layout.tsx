@@ -66,8 +66,8 @@ const menuGroups: NavGroup[] = [
     label: "CRM & INTERAKSI",
     items: [
       { title: "Lead Center", href: "/admin/crm/leads", icon: Users },
-      { title: "Kelola Survei", href: "/admin/crm/surveys", icon: Calendar },
       { title: "Follow Ups", href: "/admin/crm/follow-ups", icon: Clock },
+      { title: "Kelola Survei", href: "/admin/crm/surveys", icon: Calendar },
       { title: "Commissions", href: "/admin/crm/commissions", icon: Coins },
       { title: "Konsultasi", href: "/admin/consultations", icon: MessageSquare },
     ],

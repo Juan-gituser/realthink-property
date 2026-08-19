@@ -33,11 +33,16 @@ const LocationPickerMap = dynamic(
   }
 );
 
-// Interface untuk menampung data foto terpilih
 interface SelectedImage {
   id: string;
   file: File;
   previewUrl: string;
+}
+
+// Interface untuk Kategori Properti dari Supabase
+interface CategoryOption {
+  id: string | number;
+  name: string; // sesuaikan jika nama kolom di Supabase adalah 'title' atau 'category_name'
 }
 
 export default function CreatePropertyPage() {
@@ -47,9 +52,14 @@ export default function CreatePropertyPage() {
 
   // Form State
   const [title, setTitle] = useState("");
-  const [displayPrice, setDisplayPrice] = useState(""); // Nilai harga terformat (titik)
+  const [displayPrice, setDisplayPrice] = useState("");
   const [status, setStatus] = useState<"dijual" | "disewa">("dijual");
-  const [category, setCategory] = useState("Rumah");
+  
+  // 🟢 Dynamic Category States
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [fetchingCategories, setFetchingCategories] = useState(true);
+  const [category, setCategory] = useState("");
+
   const [legality, setLegality] = useState("SHM");
 
   // Alamat State
@@ -68,17 +78,43 @@ export default function CreatePropertyPage() {
   const [isFeatured, setIsFeatured] = useState(false);
 
   // State Koordinat Peta
-  const [lat, setLat] = useState<number>(-6.2); // Default Jakarta
+  const [lat, setLat] = useState<number>(-6.2);
   const [lng, setLng] = useState<number>(106.816666);
 
-  // 🟢 State Terpadu untuk Foto
+  // State Terpadu untuk Foto
   const [images, setImages] = useState<SelectedImage[]>([]);
 
-  // State Drag & Drop Native (Desktop)
+  // State Drag & Drop Native
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-  // Pembersihan memory leak untuk blob preview URL saat unmount
+  // 🟢 Fetch Data Kategori dari Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setFetchingCategories(true);
+        const { data, error } = await supabase
+          .from("categories") // Ubah nama tabel menjadi 'categories'
+          .select("id, name")
+          .order("name", { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setCategories(data);
+          setCategory(data[0].name); // Default pilih item pertama
+        }
+      } catch (err) {
+        console.error("Gagal memuat kategori properti:", err);
+      } finally {
+        setFetchingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
+  // Pembersihan memory leak preview URL
   useEffect(() => {
     return () => {
       images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
@@ -87,7 +123,7 @@ export default function CreatePropertyPage() {
 
   // Helper untuk auto-format titik ribuan pada Harga
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/\D/g, ""); // Ambil hanya angka
+    const rawValue = e.target.value.replace(/\D/g, "");
     if (!rawValue) {
       setDisplayPrice("");
       return;
@@ -136,8 +172,6 @@ export default function CreatePropertyPage() {
     });
 
     setImages((prev) => [...prev, ...validImages]);
-
-    // Reset input file agar pengguna bisa memilih file yang sama jika diperlukan
     e.target.value = "";
   };
 
@@ -152,7 +186,7 @@ export default function CreatePropertyPage() {
     });
   };
 
-  // Helper Geser Posisi Foto (Mobile & Fallback)
+  // Helper Geser Posisi Foto
   const moveImage = (currentIndex: number, direction: "left" | "right") => {
     const targetIndex = direction === "left" ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= images.length) return;
@@ -163,7 +197,7 @@ export default function CreatePropertyPage() {
     setImages(updated);
   };
 
-  // Helper Set Foto Utama (Langsung Pindah ke Indeks #0)
+  // Helper Set Foto Utama
   const setAsMainImage = (index: number) => {
     if (index === 0) return;
     const updated = [...images];
@@ -172,10 +206,8 @@ export default function CreatePropertyPage() {
     setImages(updated);
   };
 
-  // HANDLER DRAG & DROP GRID NATIVE (Desktop)
-  const handleDragStart = (index: number) => {
-    setDraggedIndex(index);
-  };
+  // HANDLER DRAG & DROP
+  const handleDragStart = (index: number) => setDraggedIndex(index);
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
@@ -213,13 +245,11 @@ export default function CreatePropertyPage() {
         throw new Error("Silakan pilih minimal satu foto utama properti terlebih dahulu.");
       }
 
-      // Clean harga dari titik untuk disimpan sebagai number di Database
       const rawPriceNumeric = Number(displayPrice.replace(/\D/g, "")) || 0;
       if (rawPriceNumeric <= 0) {
         throw new Error("Silakan masukkan harga properti yang valid.");
       }
 
-      // Auto Generate Lokasi Ringkas (Kecamatan, Kota/Provinsi)
       const locationRingkas =
         [district, city || province].filter(Boolean).join(", ") || address;
 
@@ -276,8 +306,8 @@ export default function CreatePropertyPage() {
           land_area: Number(landArea) || 0,
           building_area: Number(buildingArea) || 0,
           description,
-          image_url: uploadedUrls[0], // Foto urutan #0 otomatis jadi Cover Utama
-          images: uploadedUrls,      // Array foto berurutan
+          image_url: uploadedUrls[0],
+          images: uploadedUrls,
           is_featured: isFeatured,
         },
       ]);
@@ -399,21 +429,28 @@ export default function CreatePropertyPage() {
               </select>
             </div>
 
+            {/* 🟢 DYNAMIC CATEGORY DROPDOWN */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-gray-700">
                 Kategori Properti
               </label>
               <select
-                disabled={loading}
+                disabled={loading || fetchingCategories}
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 focus:border-amber-500 focus:outline-none disabled:bg-gray-50"
               >
-                <option value="Rumah">Rumah</option>
-                <option value="Apartemen">Apartemen</option>
-                <option value="Ruko">Ruko</option>
-                <option value="Villa">Villa</option>
-                <option value="Tanah">Tanah</option>
+                {fetchingCategories ? (
+                  <option value="">Memuat kategori...</option>
+                ) : categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>
+                      {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">Tidak ada kategori tersedia</option>
+                )}
               </select>
             </div>
 
@@ -586,7 +623,6 @@ export default function CreatePropertyPage() {
             </div>
           </div>
 
-          {/* Map Picker Component */}
           <div className="pt-2">
             <LocationPickerMap
               address={address}
@@ -626,7 +662,7 @@ export default function CreatePropertyPage() {
           </div>
         </div>
 
-        {/* SEKSI 4: GALERI FOTO & REARRANGE (GRID + TOUCH/MOBILE SUPPORT) */}
+        {/* SEKSI 4: GALERI FOTO */}
         <div className="space-y-4 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
             <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600">
@@ -666,7 +702,6 @@ export default function CreatePropertyPage() {
             </label>
           </div>
 
-          {/* TAMPILAN GRID FOTO TERPILIH */}
           {images.length > 0 && (
             <div className="space-y-3 pt-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -699,7 +734,6 @@ export default function CreatePropertyPage() {
                           : "border-gray-200 hover:border-gray-300 hover:shadow-md"
                       }`}
                     >
-                      {/* Container Gambar */}
                       <div className="relative aspect-4/3 w-full overflow-hidden bg-gray-200">
                         <img
                           src={item.previewUrl}
@@ -707,14 +741,12 @@ export default function CreatePropertyPage() {
                           className="h-full w-full object-cover pointer-events-none"
                         />
 
-                        {/* Badge Utama (Indeks #0) */}
                         {index === 0 && (
                           <div className="absolute bottom-2 left-2 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
                             Utama
                           </div>
                         )}
 
-                        {/* Tombol Hapus */}
                         <button
                           type="button"
                           onClick={(e) => {
@@ -728,7 +760,6 @@ export default function CreatePropertyPage() {
                         </button>
                       </div>
 
-                      {/* Kontrol Navigasi & Posisi (Mobile-friendly) */}
                       <div className="flex items-center justify-between border-t border-gray-100 bg-white p-1.5">
                         <div className="flex items-center gap-1">
                           <button

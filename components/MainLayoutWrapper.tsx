@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import ComparisonBar from "@/components/shared/ComparisonBar";
+import ComparisonBar from "@/components/shared/ComparisonBar"; // Sesuaikan path foldernya jika berbeda
 import FloatingConsultation from "@/components/FloatingConsultation";
 import PageWrapper from "@/components/PageWrapper";
 import PageTransition from "@/components/PageTransition";
@@ -30,11 +30,11 @@ export default function MainLayoutWrapper({ children }: { children: React.ReactN
       {/* PageWrapper untuk mengatur padding dinamis secara otomatis */}
       <PageWrapper>{children}</PageWrapper>
 
-      {/* Bar Komparasi Properti */}
-      <ComparisonBar />
-
       {/* Tombol Floating Konsultasi */}
       <FloatingConsultation />
+
+      {/* Bilah Navigasi Perbandingan Properti */}
+      <ComparisonBar />
 
       {/* Footer */}
       <Footer />

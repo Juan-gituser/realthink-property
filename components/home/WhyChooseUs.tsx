@@ -5,23 +5,23 @@ import { ShieldCheck, Zap, Calculator, Award } from "lucide-react";
 const features = [
   {
     icon: ShieldCheck,
-    title: "Legalitas Terjamin",
-    desc: "Setiap unit listing telah diverifikasi dokumen sertifikatnya.",
+    title: "Verifikasi Dokumen",
+    desc: "Setiap listing melalui tahap pengecekan kelengkapan berkas dan kejelasan legalitas.",
   },
   {
     icon: Zap,
-    title: "Proses Cepat & Ringan",
-    desc: "Platform responsif tanpa *lag* untuk pengalaman pencarian yang nyaman.",
+    title: "Akses Informasi Praktis",
+    desc: "Platform responsif yang dirancang untuk memudahkan pencarian properti Anda.",
   },
   {
     icon: Calculator,
-    title: "Kalkulator KPR Akurat",
-    desc: "Hitung estimasi angsuran, pajak BPHTB, dan notaris secara langsung.",
+    title: "Simulasi KPR Transparan",
+    desc: "Bantu kalkulasi gambaran angsuran, estimasi BPHTB, serta estimasi biaya notaris.",
   },
   {
     icon: Award,
-    title: "Tim Profesional",
-    desc: "Didampingi agen berpengalaman dari konsultasi hingga serah terima.",
+    title: "Pendampingan Transaksi",
+    desc: "Tim agen kami siap memberikan konsultasi dan asistensi selama proses transaksi.",
   },
 ];
 
@@ -32,7 +32,7 @@ export default function WhyChooseUs() {
         <div className="mx-auto mb-12 max-w-2xl text-center">
           <h2 className="text-primary text-3xl font-bold">Mengapa Realthink Property?</h2>
           <p className="text-muted-foreground mt-2">
-            Kami berkomitmen memberikan standar pelayanan terbaik dalam bertransaksi properti.
+            Kami hadir untuk membantu mempermudah dan mendampingi setiap langkah pencarian properti Anda.
           </p>
         </div>
 
